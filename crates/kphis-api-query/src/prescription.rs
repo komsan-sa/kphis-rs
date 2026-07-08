@@ -690,7 +690,9 @@ mod tests {
     async fn sqlx_select_next_app() {
         let tester = MySqlTester::new_hosxp().await;
         sqlx::query(include_str!("../../kphis-sqlx-tester/test_sqls/create/hosxp/oapp.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../kphis-sqlx-tester/test_sqls/create/hosxp/clinic.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../kphis-sqlx-tester/test_sqls/insert/hosxp/oapp.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../kphis-sqlx-tester/test_sqls/insert/hosxp/clinic.sql")).execute(&tester.db_pool).await.unwrap();
 
         let found = select_next_app("661231235959", &tester.db_pool, &tester.hosxp).await.unwrap();
         assert_eq!(found.len(), 2);

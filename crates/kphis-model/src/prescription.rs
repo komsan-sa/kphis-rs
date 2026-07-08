@@ -381,12 +381,14 @@ pub struct DrugInteraction {
 pub struct NextAppointment {
     #[Demo(value = "Some(date!(2023-12-31))")]
     pub nextdate: Option<Date>,
+    #[Demo(value = r#"Some(String::from("ผู้ป่วยนอก"))"#)]
+    pub clinic_name: Option<String>,
     #[Demo(value = "Some(30)")]
     pub days: Option<i32>,
 }
 impl NextAppointment {
     pub fn string(&self) -> String {
-        [&self.days.map(|i| i.to_string()).unwrap_or_default(), " วัน (", &date_th_opt(&self.nextdate), ")"].concat()
+        [&self.days.map(|i| i.to_string()).unwrap_or_default(), " วัน (", &date_th_opt(&self.nextdate), ") ", &self.clinic_name.clone().unwrap_or_default()].concat()
     }
 }
 

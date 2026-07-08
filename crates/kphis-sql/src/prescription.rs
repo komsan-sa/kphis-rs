@@ -271,7 +271,10 @@ pub fn select_info_drug_interaction(hosxp: &str) -> String {
 /// vn
 pub fn select_next_app(hosxp: &str) -> String {
     [
-        "SELECT nextdate,DATEDIFF(nextdate,vstdate) AS days FROM ",hosxp,".oapp WHERE oapp.vn=?;"
+        "SELECT nextdate,c.`name` AS clinic_name,DATEDIFF(nextdate,vstdate) AS days \
+        FROM ",hosxp,".oapp \
+            LEFT JOIN ",hosxp,".clinic c ON c.clinic=oapp.clinic \
+        WHERE oapp.vn=?;"
     ].concat()
 }
 
