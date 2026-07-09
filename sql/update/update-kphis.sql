@@ -164,7 +164,7 @@ INSERT INTO `system_ac_role_permission` VALUES ('IT_ADMIN', 'SYSTEM_AC_REPORT_RE
 -- Update SYSTEM_AC_REPORT_VIEW for IT_ADMIN
 INSERT INTO `system_ac_role_permission` VALUES ('IT_ADMIN', 'SYSTEM_AC_REPORT_VIEW', 'jommarn', '2021-07-21 16:15:30', 'jommarn', '2021-07-21 16:15:30', 0)
 	ON DUPLICATE KEY UPDATE `role`='IT_ADMIN',`permission`='SYSTEM_AC_REPORT_VIEW',`create_user`='jommarn',`create_datetime`='2021-07-21 16:15:30',`update_user`='jommarn',`update_datetime`='2021-07-21 16:15:30',`version`=0;
--- Update SYSTEM_AC_REPORT_VIEW for nurse offing order
+-- Update IPD_ORDER_OFF for nurse
 INSERT INTO `system_ac_role_permission` VALUES ('NURSE_ER_RN_EMT', 'IPD_ORDER_OFF', 'jommarn', '2021-07-21 16:15:30', 'jommarn', '2021-07-21 16:15:30', 0)
 	ON DUPLICATE KEY UPDATE `role`='NURSE_ER_RN_EMT',`permission`='IPD_ORDER_OFF',`create_user`='jommarn',`create_datetime`='2021-07-21 16:15:30',`update_user`='jommarn',`update_datetime`='2021-07-21 16:15:30',`version`=0;
 INSERT INTO `system_ac_role_permission` VALUES ('NURSE_IPD_RN_TN', 'IPD_ORDER_OFF', 'jommarn', '2021-07-21 16:15:30', 'jommarn', '2021-07-21 16:15:30', 0)

@@ -31,6 +31,9 @@ https-key-path = "./volume/cert/privkey.pem"
 # default is 2, max is 255
 request-body-limited-mb = 255
 
+# comment if not use reverse proxy
+real-ip-header = "x-real-ip"
+
 # max request qouta that each ip can do, default is 100, max is u32::MAX
 rate-limit-burst-size = 100000
 # increase request qouta by 1 every xx millisecond, not more than max qouta above, default is 100, max is u64::MAX

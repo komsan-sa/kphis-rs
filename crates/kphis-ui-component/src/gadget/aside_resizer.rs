@@ -370,7 +370,7 @@ impl AsideResizerCpn {
                                         if let Some((is_ipd, patient)) = with_order.clone() {
                                             let order = OrderCpn::new(
                                                 is_ipd, patient,
-                                                Mutable::new(app.guess_view_by().to_owned()), 
+                                                Mutable::new(app.guess_view_by().to_owned()),
                                                 Mutable::new(String::from("Y")),
                                                 Mutable::new(String::new()),
                                                 Mutable::new(0),
