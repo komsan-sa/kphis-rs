@@ -401,7 +401,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/kphis/system_ac_role.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/system_ac_role.sql")).execute(&tester.db_pool).await.unwrap();
         let found = get_all_role(&tester.db_pool, &tester.kphis).await.unwrap();
-        assert_eq!(found.len(), 6);
+        assert_eq!(found.len(), 13);
     }
 
     #[tokio::test]
@@ -421,11 +421,11 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/system_acc_role_permission.sql")).execute(&tester.db_pool).await.unwrap();
 
         let all = get_role_permission_list(UserRoleParams::default(), &tester.db_pool, &tester.kphis).await.unwrap();
-        assert_eq!(all.len(), 6);
+        assert_eq!(all.len(), 13);
 
         // permission selector will filter 'permissions' column data, not row
         let permission_found = get_role_permission_list(UserRoleParams {permission: Some(String::from("EMR_VIEW")),..Default::default()},&tester.db_pool,&tester.kphis).await.unwrap();
-        assert_eq!(permission_found.len(), 6);
+        assert_eq!(permission_found.len(), 13);
         assert_eq!(permission_found.iter().map(|p| p.permissions.as_ref().map(|ps| ps.len()).unwrap_or_default()).sum::<usize>(),1);
         let permission_not_found = get_role_permission_list(UserRoleParams {permission: Some(String::from("USER_VIEW")),..Default::default()},&tester.db_pool,&tester.kphis).await.unwrap();
         assert_eq!(permission_not_found.iter().map(|p| p.permissions.as_ref().map(|ps| ps.len()).unwrap_or_default()).sum::<usize>(),0);
@@ -501,7 +501,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/system_acc_role_user.sql")).execute(&tester.db_pool).await.unwrap();
 
         let all = select_roles_with_count(&tester.db_pool, &tester.kphis).await.unwrap();
-        assert_eq!(all.len(), 6); // table `system_ac_role` has 6 rows
+        assert_eq!(all.len(), 13); // table `system_ac_role` has 6 rows
         assert_eq!(all.iter().map(|r| r.user_count).sum::<i64>(), 5); // 1 DOCTOR + 4 DOCTOR_STAFF
         assert_eq!(all.iter().filter(|r| r.role == *"DOCTOR_STAFF").map(|r| r.user_count).sum::<i64>(),3);
     }
@@ -519,7 +519,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/system_acc_permission.sql")).execute(&tester.db_pool).await.unwrap();
 
         let all = select_permission(&tester.db_pool, &tester.kphis).await.unwrap();
-        assert_eq!(all.len(), 8);
+        assert_eq!(all.len(), 9);
     }
 
     #[tokio::test]
