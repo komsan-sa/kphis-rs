@@ -7,7 +7,7 @@ use axum::{
     extract::{ConnectInfo, State},
     http::HeaderMap,
 };
-use std::{collections::HashSet, net::SocketAddr};
+use std::{collections::HashSet, net::{IpAddr, SocketAddr}};
 use tower_cookies::{Cookie, Cookies, cookie::SameSite};
 use ulid::Ulid;
 
@@ -75,7 +75,8 @@ pub async fn check_login(
             .as_ref()
             .and_then(|real_ip_header| headers.get(real_ip_header))
             .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse::<SocketAddr>().ok())
+            .and_then(|v| v.parse::<IpAddr>().ok())
+            .map(|ip| SocketAddr::new(ip, socket_addr.port()))
             .unwrap_or(socket_addr);
         Some(login_response(real_addr, &user, &cookies, &app).await?)
     };
@@ -150,7 +151,8 @@ pub async fn check_totp(
         .as_ref()
         .and_then(|real_ip_header| headers.get(real_ip_header))
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.parse::<SocketAddr>().ok())
+        .and_then(|v| v.parse::<IpAddr>().ok())
+        .map(|ip| SocketAddr::new(ip, socket_addr.port()))
         .unwrap_or(socket_addr);
     let response = login_response(real_addr, &user, &cookies, &app).await?;
 
@@ -262,7 +264,8 @@ pub async fn refresh_token(ConnectInfo(socket_addr): ConnectInfo<SocketAddr>, he
                 .as_ref()
                 .and_then(|real_ip_header| headers.get(real_ip_header))
                 .and_then(|v| v.to_str().ok())
-                .and_then(|v| v.parse::<SocketAddr>().ok())
+                .and_then(|v| v.parse::<IpAddr>().ok())
+                .map(|ip| SocketAddr::new(ip, socket_addr.port()))
                 .unwrap_or(socket_addr);
             if addr.ip() != real_addr.ip() {
                 tracing::warn!("user {} failed to refresh token because mismatched IP Address", user.name);
@@ -354,7 +357,8 @@ pub async fn refresh_cookie(
                 .as_ref()
                 .and_then(|real_ip_header| headers.get(real_ip_header))
                 .and_then(|v| v.to_str().ok())
-                .and_then(|v| v.parse::<SocketAddr>().ok())
+                .and_then(|v| v.parse::<IpAddr>().ok())
+                .map(|ip| SocketAddr::new(ip, addr.port()))
                 .unwrap_or(socket_addr);
             if addr.ip() != real_addr.ip() {
                 tracing::warn!("user {} failed to login because mismatched IP Address", user.name);

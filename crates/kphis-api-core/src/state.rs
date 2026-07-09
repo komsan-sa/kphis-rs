@@ -18,7 +18,7 @@ use sqlx::{MySql, Pool};
 use std::{
     collections::{HashMap, HashSet},
     env,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     path::Path,
     str::FromStr,
     sync::{Arc, LazyLock, RwLock},
@@ -962,7 +962,8 @@ where
             .as_ref()
             .and_then(|real_ip_header| parts.headers.get(real_ip_header))
             .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse::<SocketAddr>().ok())
+            .and_then(|v| v.parse::<IpAddr>().ok())
+            .map(|ip| SocketAddr::new(ip, addr.port()))
             .unwrap_or(addr);
         let user_state = UserState::from_token(bearer.token(), real_addr, &api_state).await?;
 
