@@ -388,7 +388,14 @@ pub struct NextAppointment {
 }
 impl NextAppointment {
     pub fn string(&self) -> String {
-        [&self.days.map(|i| i.to_string()).unwrap_or_default(), " วัน (", &date_th_opt(&self.nextdate), ") ", &self.clinic_name.clone().unwrap_or_default()].concat()
+        [
+            &self.days.map(|i| i.to_string()).unwrap_or_default(),
+            " วัน (",
+            &date_th_opt(&self.nextdate),
+            ") ",
+            &self.clinic_name.clone().unwrap_or_default(),
+        ]
+        .concat()
     }
 }
 

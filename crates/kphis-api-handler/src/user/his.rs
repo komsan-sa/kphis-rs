@@ -5,8 +5,12 @@ use argon2::{
 use axum::{
     Json,
     extract::{ConnectInfo, State},
+    http::HeaderMap,
 };
-use std::{collections::HashSet, net::SocketAddr};
+use std::{
+    collections::HashSet,
+    net::{IpAddr, SocketAddr},
+};
 use tower_cookies::{Cookie, Cookies, cookie::SameSite};
 use ulid::Ulid;
 
@@ -45,6 +49,7 @@ pub const COOKIE_TOKEN_NAME: &str = "REFRESH";
 )]
 pub async fn check_login(
     ConnectInfo(socket_addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     State(app): State<ApiState>,
     cookies: Cookies,
     Json(payload): Json<UserRequest>,
@@ -67,7 +72,19 @@ pub async fn check_login(
             return Err(AppError::app_401("Check Login").with_title(ErrorTitle::Security));
         }
     } else {
-        Some(login_response(socket_addr, &user, &cookies, &app).await?)
+        let real_addr = app
+            .app_config
+            .real_ip_header
+            .as_ref()
+            .and_then(|real_ip_header| headers.get(real_ip_header))
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<IpAddr>().ok())
+            .map(|ip| SocketAddr::new(ip, socket_addr.port()))
+            .unwrap_or(socket_addr);
+        let response = login_response(real_addr, &user, &cookies, &app).await?;
+        tracing::info!("User {} Log-in from {}", &user.name, real_addr.to_string());
+
+        Some(response)
     };
 
     Ok(Json(response))
@@ -87,6 +104,7 @@ pub async fn check_login(
 )]
 pub async fn check_totp(
     ConnectInfo(socket_addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     State(app): State<ApiState>,
     cookies: Cookies,
     Json(payload): Json<UserRequest2fa>,
@@ -133,7 +151,17 @@ pub async fn check_totp(
         return Err(AppError::app_401("Check TOTP").with_title(ErrorTitle::Security));
     }
 
-    let response = login_response(socket_addr, &user, &cookies, &app).await?;
+    let real_addr = app
+        .app_config
+        .real_ip_header
+        .as_ref()
+        .and_then(|real_ip_header| headers.get(real_ip_header))
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<IpAddr>().ok())
+        .map(|ip| SocketAddr::new(ip, socket_addr.port()))
+        .unwrap_or(socket_addr);
+    let response = login_response(real_addr, &user, &cookies, &app).await?;
+    tracing::info!("User {} Log-in from {}", &user.name, real_addr.to_string());
 
     Ok(Json(Some(response)))
 }
@@ -223,7 +251,7 @@ pub fn verify_password(password: &str, hash: &str) -> Result<(), AppError> {
     path = "/user",
     responses(DocOne<LoginResponse>),
 )]
-pub async fn refresh_token(ConnectInfo(socket_addr): ConnectInfo<SocketAddr>, State(app): State<ApiState>, cookies: Cookies) -> Result<Json<LoginResponse>, AppError> {
+pub async fn refresh_token(ConnectInfo(socket_addr): ConnectInfo<SocketAddr>, headers: HeaderMap, State(app): State<ApiState>, cookies: Cookies) -> Result<Json<LoginResponse>, AppError> {
     let cookie = cookies.get(COOKIE_TOKEN_NAME).ok_or_else(|| AppError::app_401("Get Token").with_title(ErrorTitle::Security))?;
 
     let claims = get_claim_and_verify_public(cookie.value(), &app.paseto.public)?;
@@ -237,12 +265,21 @@ pub async fn refresh_token(ConnectInfo(socket_addr): ConnectInfo<SocketAddr>, St
     match app.online_get(state_id).await {
         Some(UserState { user, roles, permissions, addr, .. }) => {
             // check IP address
-            if addr.ip() != socket_addr.ip() {
+            let real_addr = app
+                .app_config
+                .real_ip_header
+                .as_ref()
+                .and_then(|real_ip_header| headers.get(real_ip_header))
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.parse::<IpAddr>().ok())
+                .unwrap_or(socket_addr.ip());
+            if addr.ip() != real_addr {
                 tracing::warn!("user {} failed to refresh token because mismatched IP Address", user.name);
                 return Err(Source::App.to_error(401, "Mismatched IP Address", "Get Token"));
             }
 
             let response = refresh_response(state_id, &user, roles, permissions, &cookies, &app)?;
+            tracing::info!("User {} request a new access-token from {}", &user.name, real_addr.to_string());
 
             Ok(Json(response))
         }
@@ -297,6 +334,7 @@ fn refresh_response(state_id: u128, user: &UserDb, roles: Vec<CurrentUserRole>, 
 )]
 pub async fn refresh_cookie(
     ConnectInfo(socket_addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     State(app): State<ApiState>,
     cookies: Cookies,
     Json(payload): Json<UserRequestFull>,
@@ -320,12 +358,21 @@ pub async fn refresh_cookie(
                 return Err(e);
             }
             // check IP address
-            if addr.ip() != socket_addr.ip() {
+            let real_addr = app
+                .app_config
+                .real_ip_header
+                .as_ref()
+                .and_then(|real_ip_header| headers.get(real_ip_header))
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.parse::<IpAddr>().ok())
+                .unwrap_or(socket_addr.ip());
+            if addr.ip() != real_addr {
                 tracing::warn!("user {} failed to login because mismatched IP Address", user.name);
                 return Err(Source::App.to_error(401, "Mismatched IP Address", "Get Token"));
             }
 
             let response = refresh_response(state_id, &user, roles, permissions, &cookies, &app)?;
+            tracing::info!("User {} request a new refresh-token from {}", &user.name, real_addr.to_string());
 
             Ok(Json(response))
         }

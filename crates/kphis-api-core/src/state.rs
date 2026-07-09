@@ -18,7 +18,7 @@ use sqlx::{MySql, Pool};
 use std::{
     collections::{HashMap, HashSet},
     env,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     path::Path,
     str::FromStr,
     sync::{Arc, LazyLock, RwLock},
@@ -225,6 +225,7 @@ impl ApiState {
             request_body_limited_mb,
             rate_limit_burst_size,
             rate_limit_replenish_every_millisecond,
+            real_ip_header: config.get_string("real-ip-header").ok(),
 
             hosxp_dbname,
             kphis_dbname,
@@ -955,7 +956,16 @@ where
             .await
             .map_err(|_| Source::App.to_error(400, "Token Not Found", "ExtractUser"))?;
         let path_query = parts.uri.path_and_query().cloned();
-        let user_state = UserState::from_token(bearer.token(), addr, &api_state).await?;
+        let real_addr = api_state
+            .app_config
+            .real_ip_header
+            .as_ref()
+            .and_then(|real_ip_header| parts.headers.get(real_ip_header))
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<IpAddr>().ok())
+            .map(|ip| SocketAddr::new(ip, addr.port()))
+            .unwrap_or(addr);
+        let user_state = UserState::from_token(bearer.token(), real_addr, &api_state).await?;
 
         Ok(Self {
             api_state,
@@ -1012,6 +1022,7 @@ pub struct ApiConfig {
     pub request_body_limited_mb: u8,
     pub rate_limit_burst_size: u32,
     pub rate_limit_replenish_every_millisecond: u64,
+    pub real_ip_header: Option<String>,
 
     pub is_production: bool,
     pub is_read_only_mode: bool,

@@ -4,6 +4,7 @@ use axum::{
     Json,
     body::Bytes,
     extract::{ConnectInfo, Multipart, Path, Query, State},
+    http::HeaderMap,
     http::Response,
 };
 use http_body_util::Full;
@@ -259,7 +260,7 @@ where
 //===== ===== =====//
 fn check_login_rj<H, F, HFut, FFut, T>(_handler_fn: H, _fetch_fn: F)
 where
-    H: Fn(ConnectInfo<SocketAddr>, State<ApiState>, Cookies) -> HFut,
+    H: Fn(ConnectInfo<SocketAddr>, HeaderMap, State<ApiState>, Cookies) -> HFut,
     F: Fn(Rc<AppState>) -> FFut,
     HFut: Future<Output = Result<Json<T>, AppError>>,
     FFut: Future<Output = Result<T, AppError>>,
@@ -267,7 +268,7 @@ where
 }
 fn check_login_payload_rj<'a, H, F, HFut, FFut, T, X>(_handler_fn: H, _fetch_fn: F)
 where
-    H: Fn(ConnectInfo<SocketAddr>, State<ApiState>, Cookies, Json<X>) -> HFut,
+    H: Fn(ConnectInfo<SocketAddr>, HeaderMap, State<ApiState>, Cookies, Json<X>) -> HFut,
     F: Fn(&'a str, &'a str, Rc<AppState>) -> FFut,
     HFut: Future<Output = Result<Json<T>, AppError>>,
     FFut: Future<Output = Result<T, AppError>>,
@@ -275,7 +276,7 @@ where
 }
 fn check_login_payload_add_rj<'a, H, F, HFut, FFut, T, X, A>(_handler_fn: H, _fetch_fn: F)
 where
-    H: Fn(ConnectInfo<SocketAddr>, State<ApiState>, Cookies, Json<X>) -> HFut,
+    H: Fn(ConnectInfo<SocketAddr>, HeaderMap, State<ApiState>, Cookies, Json<X>) -> HFut,
     F: Fn(A, &'a str, &'a str, Rc<AppState>) -> FFut,
     HFut: Future<Output = Result<Json<T>, AppError>>,
     FFut: Future<Output = Result<T, AppError>>,
