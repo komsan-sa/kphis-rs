@@ -6,4 +6,5 @@ INSERT INTO `kphis`.`system_ac_permission` (`permission`, `resource`, `operation
 	('IPD_LAB_READ_ADD', 'IPD_LAB_READ', 'ADD', 'jommarn', '2020-07-25 19:32:25', 'jommarn', '2020-07-25 19:32:25', 0),
 	('IPD_LAB_READ_EDIT', 'IPD_LAB_READ', 'EDIT', 'jommarn', '2020-07-25 19:32:25', 'jommarn', '2020-07-25 19:32:25', 0),
 	('IPD_LAB_READ_REMOVE', 'IPD_LAB_READ', 'REMOVE', 'jommarn', '2020-07-25 19:32:25', 'jommarn', '2020-07-25 19:32:25', 0),
-	('IPD_LAB_READ_VIEW', 'IPD_LAB_READ', 'VIEW', 'jommarn', '2020-07-25 19:32:25', 'jommarn', '2020-07-25 19:32:25', 0);
+	('IPD_LAB_READ_VIEW', 'IPD_LAB_READ', 'VIEW', 'jommarn', '2020-07-25 19:32:25', 'jommarn', '2020-07-25 19:32:25', 0),
+	('IPD_ORDER_OFF', 'IPD_ORDER', 'OFF', 'jommarn', '2020-01-18 15:54:41', 'jommarn', '2020-01-18 15:54:41', 0);

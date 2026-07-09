@@ -45,9 +45,9 @@ mod tests {
         let mocker = MySqlMocker::new_kphis().await;
 
         let success = update_kphis(&mocker.db_pool, &mocker.kphis).await.unwrap();
-        assert_eq!(success.len(), 219);
+        assert_eq!(success.len(), 222);
         let again = update_kphis(&mocker.db_pool, &mocker.kphis).await.unwrap();
-        assert_eq!(again.len(), 219);
+        assert_eq!(again.len(), 222);
     }
 
     #[tokio::test]
