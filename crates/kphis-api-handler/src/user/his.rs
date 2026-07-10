@@ -58,6 +58,9 @@ pub async fn check_login(
         .await?
         .ok_or_else(|| AppError::app_401("Check Login").with_title(ErrorTitle::Security))?;
 
+    if user.doctorcode.is_none() {
+        return Err(Source::App.to_error(403, "No doctorcode", "Check Login").with_title(ErrorTitle::Security));
+    }
     // check password
     if let Err(e) = verify_password(&user.passweb, &payload.password) {
         tracing::warn!("user {} failed to login with {}", user.name, e.message);
@@ -125,6 +128,10 @@ pub async fn check_totp(
     let mut user = login::get_user(&loginname, &app.db_pool, &app.hosxp(), &app.kphis(), &app.kphis_extra())
         .await?
         .ok_or_else(|| AppError::app_401("Check TOTP").with_title(ErrorTitle::Security))?;
+
+    if user.doctorcode.is_none() {
+        return Err(Source::App.to_error(403, "No doctorcode", "Check TOTP").with_title(ErrorTitle::Security));
+    }
 
     // check TOTP
     if let (Some(totp_pk), Some(ts), Ok(now)) = (&user.totp, user.ts, get_timestamp_server()) {

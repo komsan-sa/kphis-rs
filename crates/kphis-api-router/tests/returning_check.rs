@@ -4,8 +4,7 @@ use axum::{
     Json,
     body::Bytes,
     extract::{ConnectInfo, Multipart, Path, Query, State},
-    http::HeaderMap,
-    http::Response,
+    http::{HeaderMap, Response},
 };
 use http_body_util::Full;
 use std::{net::SocketAddr, rc::Rc};
