@@ -10,7 +10,7 @@ pub fn check_login(hosxp: &str, kphis: &str, kphis_extra: &str) -> String {
         "SELECT u.loginname,u.passweb,u.`name`,u.doctorcode,u.groupname,u.accessright,u.entryposition,d.licenseno,u.picture AS image,c.wards,c.spcltys,c.theme,c.wide_screen,c.totp,c.ts,c.totp_done,\
             (SELECT EXISTS(SELECT * FROM ",kphis,".ipd_ward_passcode_user WHERE loginname=u.loginname)) AS can_passcode \
         FROM ",hosxp,".opduser u \
-            JOIN ",hosxp,".doctor d ON d.`code`=u.doctorcode \
+            LEFT JOIN ",hosxp,".doctor d ON d.`code`=u.doctorcode \
             LEFT JOIN ",kphis_extra,".user_config c ON c.loginname=u.loginname \
         WHERE u.loginname=? AND (u.account_disable IS NULL OR u.account_disable <> 'Y');"
     ].concat()
