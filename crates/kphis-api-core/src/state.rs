@@ -250,6 +250,7 @@ impl ApiState {
             hospital_name: config.get_string("hospital-name").expect("'hospital-name' not found in config file"),
             hospital_short_name: config.get_string("hospital-short-name").expect("'hospital-short-name' not found in config file"),
             hospital_info: config.get_string("hospital-info").unwrap_or_default(),
+            hospital_address: config.get_string("hospital-address").unwrap_or_default(),
             drug_notify_use: config.get_string("drug-notify-use").expect("'drug-notify-use' not found in config file"),
             drug_notify_start_end_marker_use: config
                 .get_string("drug-notify-start-end-marker-use")
@@ -1047,6 +1048,7 @@ pub struct ApiConfig {
     pub hospital_name: String,
     pub hospital_short_name: String,
     pub hospital_info: String,
+    pub hospital_address: String,
     pub drug_notify_use: String,
     pub drug_notify_start_end_marker_use: String,
     pub drug_notify_start_marker: String,

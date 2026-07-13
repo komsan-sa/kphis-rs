@@ -158,7 +158,8 @@ pub fn select_order_item(
             (SELECT TIMESTAMP(off_by_order.order_date,off_by_order.order_time) FROM ",kphis,".opd_er_order_item obi \
                 JOIN ",kphis,".opd_er_order off_by_order ON obi.order_id=off_by_order.order_id ",vb,
                 "WHERE obi.off_order_item_id=oi.order_item_id AND off_by_order.opd_er_order_master_id=oi.opd_er_order_master_id LIMIT 1) AS off_by_datetime,\
-            IF(mr.custom_med_name IS NULL OR mr.custom_med_name='',CONCAT(di.`name`,' ',di.strength,' ',di.units),mr.custom_med_name) AS med_name,di.displaycolor,di.generic_name,di.dosageform,ooi.icode AS off_icode,\
+            IF(mr.custom_med_name IS NULL OR mr.custom_med_name='',CONCAT(di.`name`,' ',di.strength,' ',di.units),mr.custom_med_name) AS med_name,\
+            di.displaycolor,di.generic_name,di.dosageform,di.addict_type_id,di.habit_forming_type,ooi.icode AS off_icode,\
             IF(omr.custom_med_name IS NULL OR omr.custom_med_name='',CONCAT(off_di.`name`,' ',off_di.strength,' ',off_di.units),omr.custom_med_name) AS off_med_name,off_di.displaycolOR AS off_displaycolor,\
             mr.old_drugusage,mr.receive_from,mr.receive_date,mr.receive_qty,mr.last_dose_taken_time,mr.last_dose_taken_remark,mr.`use` AS used,\
             GROUP_CONCAT(DISTINCT(CONCAT(allergy.agent,'=',IFNULL(allergy.symptom,''))) ORDER BY allergy.agent) AS allergy_agent_symptom \

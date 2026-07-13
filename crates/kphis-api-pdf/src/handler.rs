@@ -60,6 +60,9 @@ pub fn get_config_template_inner(app: &ApiState) -> String {
 #let hospital-info = \"",
         &config.hospital_info,
         "\"
+#let hospital-address = \"",
+        &config.hospital_address,
+        "\"
 #let an-len = ",
         &config.hosxp_an_length.to_string(),
         "

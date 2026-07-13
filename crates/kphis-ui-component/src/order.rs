@@ -44,7 +44,7 @@ use kphis_util::{
 
 use crate::{
     admission_note::AdmissionNoteCpn,
-    gadget::{image::ImageCpn, pdf_button::PdfButtons},
+    gadget::{image::ImageCpn, pdf_button::{PdfButtons, static_pdf_btn_with_modal}},
     modal::{
         blank_modal,
         index_plan_action_form::{FormType, IndexPlanActionForm, OrderType},
@@ -2452,7 +2452,7 @@ impl OrderCpn {
                             }
                             // ORDER ITEMS
                             let lis = order_item_type.order_items.iter().map(clone!(app, page, order, due_mutables, flags => move |order_item| {
-                                Self::render_order_item(cpn_id, order_item, order.clone(), is_oneday, due_mutables.clone(), flags.clone(), page.clone(), app.clone())
+                                Self::render_order_item(cpn_id, Rc::new(order_item.to_owned()), order.clone(), is_oneday, due_mutables.clone(), flags.clone(), page.clone(), app.clone())
                             })).collect::<Vec<Dom>>();
                             let list_tag = if order_item_type.is_homemed() {"ol"} else {"ul"};
                             let list = html!(list_tag, {
@@ -2917,7 +2917,7 @@ impl OrderCpn {
         })
     }
 
-    fn render_order_item(cpn_id: &'static str, order_item: &OrderItem, order: Rc<Order>, is_oneday: bool, due_mutables: Rc<DueMutables>, flags: Rc<OrderFlags>, page: Rc<Self>, app: Rc<App>) -> Dom {
+    fn render_order_item(cpn_id: &'static str, order_item: Rc<OrderItem>, order: Rc<Order>, is_oneday: bool, due_mutables: Rc<DueMutables>, flags: Rc<OrderFlags>, page: Rc<Self>, app: Rc<App>) -> Dom {
         let is_due = order_item.due_status.as_ref().map(|due_status| due_status == "Y").unwrap_or_default();
         let has_info = order_item.info_status.as_ref().map(|info_status| info_status == "Y").unwrap_or_default();
         let will_blue = if is_oneday {
@@ -3088,6 +3088,52 @@ impl OrderCpn {
                             dom
                         }
                     })
+                    // ADDICT PDF BUTTON
+                    .apply_if(order_item.addict_type_id.map(|id| id == 2).unwrap_or_default(), |dom| dom
+                        .child(html!("div", {
+                            .class(class::FLOAT_RB1)
+                            .child_signal(page.patient.signal_cloned().map(clone!(app, order, order_item => move |opt| {
+                                opt.map(|patient| {
+                                    static_pdf_btn_with_modal(
+                                        "ย.ส.2",
+                                        "ใบสั่งจ่ายยาเสพติดให้โทษในประเภท 2",
+                                        include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                        serde_json::json!({
+                                            "is_addict": true,
+                                            "patient": patient,
+                                            "order_doctor_name": order.order_doctor_name,
+                                            "order_doctor_licenseno": order.order_doctor_licenseno,
+                                            "order_item": order_item,
+                                        }).to_string(),
+                                        app.clone(),
+                                    )
+                                })
+                            })))
+                        }))
+                    )
+                    // HABIT-FORMING PDF BUTTON
+                    .apply_if(order_item.habit_forming_type.map(|id| id == 2).unwrap_or_default(), |dom| dom
+                        .child(html!("div", {
+                            .class(class::FLOAT_RB1)
+                            .child_signal(page.patient.signal_cloned().map(clone!(app, order, order_item => move |opt| {
+                                opt.map(|patient| {
+                                    static_pdf_btn_with_modal(
+                                        "ว.จ.2",
+                                        "ใบสั่งจ่ายวัตถุออกฤทธิ์ในประเภท 2",
+                                        include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                        serde_json::json!({
+                                            "is_addict": false,
+                                            "patient": patient,
+                                            "order_doctor_name": order.order_doctor_name,
+                                            "order_doctor_licenseno": order.order_doctor_licenseno,
+                                            "order_item": order_item,
+                                        }).to_string(),
+                                        app.clone(),
+                                    )
+                                })
+                            })))       
+                        }))
+                    )
                     // +PLAN BUTTON
                     .apply_if(
                         !flags.is_readonly
@@ -3100,7 +3146,7 @@ impl OrderCpn {
                         } else {
                             app.endpoint_is_allow(&Method::GET, &EndPoint::OpdErOrderItem, false)
                         },
-                    clone!(page, order => move |dom| dom.child(html!("button", {
+                    clone!(page, order, order_item => move |dom| dom.child(html!("button", {
                         .attr("type", "button")
                         .class(class::BTN_SM_FR_T_BLUEO)
                         .attr("data-bs-toggle", "modal")
@@ -3191,10 +3237,10 @@ impl OrderCpn {
                     })))
                     // PLAN / ACTION
                     .apply_if(flags.is_doctor || flags.is_nurse || flags.is_pharmacist, |dom| {
-                        dom.children(order_item.index_plans.iter().filter_map(clone!(page, order, flags => move |plan| Self::render_index_plan_badge(
+                        dom.children(order_item.index_plans.iter().filter_map(clone!(page, order, order_item, flags => move |plan| Self::render_index_plan_badge(
                             cpn_id,
                             plan,
-                            order_item,
+                            &order_item,
                             page.current_date.lock_ref().as_ref().map(|od| od.order_date),
                             OrderType::new_from_str(&order.order_type),
                             flags.is_nurse || flags.is_pharmacist,

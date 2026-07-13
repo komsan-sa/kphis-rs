@@ -242,7 +242,7 @@ pub struct Order {
 
     #[Demo(value = r#"Some(String::from("Miss.Nurse"))"#)]
     pub order_doctor_name: Option<String>,
-    #[Demo(value = r#"Some(String::from("ว00000"))"#)]
+    #[Demo(value = r#"Some(String::from("ว.00000"))"#)]
     pub order_doctor_licenseno: Option<String>,
     #[Demo(value = r#"Some(String::from("Lieutenent"))"#)]
     pub order_doctor_entryposition: Option<String>,
@@ -693,6 +693,10 @@ pub struct OrderItem {
     pub med_name: Option<String>,
     #[Demo(value = "Some(0)")]
     pub displaycolor: Option<i32>,
+    #[Demo(value = "Some(2)")]
+    pub addict_type_id: Option<i32>,
+    #[Demo(value = "Some(2)")]
+    pub habit_forming_type: Option<i32>,
     #[Demo(value = r#"Some(String::from("PARACETAMOL"))"#)]
     pub generic_name: Option<String>,
     #[Demo(value = r#"Some(String::from("TABLET"))"#)]
@@ -888,6 +892,8 @@ impl From<PreOrderItem> for OrderItem {
             off_by_datetime: None,
             med_name: item.med_name,
             displaycolor: item.displaycolor,
+            addict_type_id: None,
+            habit_forming_type: None,
             generic_name: item.generic_name,
             dosageform: item.dosageform,
             off_icode: item.off_icode,
@@ -953,6 +959,8 @@ impl From<&Rc<MedReconciliationItem>> for OrderItem {
             off_by_datetime: None,
             med_name: item.custom_med_name.clone().or(item.med_name.clone()),
             displaycolor: None,
+            addict_type_id: None,
+            habit_forming_type: None,
             generic_name: item.generic_name.clone(),
             dosageform: item.dosageform.clone(),
             off_icode: None,
@@ -1098,6 +1106,10 @@ pub struct MedOrderItem {
     pub off_by_datetime: Option<PrimitiveDateTime>,
     #[Demo(value = "Some(0)")]
     pub displaycolor: Option<i32>,
+    #[Demo(value = "Some(2)")]
+    pub addict_type_id: Option<i32>,
+    #[Demo(value = "Some(2)")]
+    pub habit_forming_type: Option<i32>,
     #[Demo(value = r#"Some(String::from("CrCl < 30 dose xx"))"#)]
     pub due_usage: Option<String>,
     #[Demo(value = r#"Some(String::from("Y"))"#)]

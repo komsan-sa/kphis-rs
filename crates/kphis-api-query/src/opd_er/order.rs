@@ -214,6 +214,8 @@ fn order_item_from_row(row: &MySqlRow) -> sqlx::Result<OrderItem> {
         off_by_datetime: row.try_get("off_by_datetime")?,
         med_name: row.try_get("med_name")?,
         displaycolor: row.try_get("displaycolor")?,
+        addict_type_id: row.try_get("addict_type_id")?,
+        habit_forming_type: row.try_get("habit_forming_type")?,
         generic_name: row.try_get("generic_name")?,
         dosageform: row.try_get("dosageform")?,
         off_icode: row.try_get("off_icode")?,
