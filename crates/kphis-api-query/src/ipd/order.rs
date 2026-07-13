@@ -238,6 +238,9 @@ fn order_item_from_row(row: &MySqlRow) -> sqlx::Result<OrderItem> {
         order_time: row.try_get("order_time")?,
         order_type: row.try_get("order_type")?,
         order_owner_type: row.try_get("order_owner_type")?,
+        order_doctor_name: row.try_get("order_doctor_name")?,
+        order_doctor_licenseno: row.try_get("order_doctor_licenseno")?,
+
         order_item_type: row.try_get("order_item_type")?,
         order_item_detail: row.try_get("order_item_detail")?,
         stat: row.try_get("stat")?,
@@ -247,6 +250,8 @@ fn order_item_from_row(row: &MySqlRow) -> sqlx::Result<OrderItem> {
         off_by_datetime: row.try_get("off_by_datetime")?,
         med_name: row.try_get("med_name")?,
         displaycolor: row.try_get("displaycolor")?,
+        addict_type_id: row.try_get("addict_type_id")?,
+        habit_forming_type: row.try_get("habit_forming_type")?,
         generic_name: row.try_get("generic_name")?,
         dosageform: row.try_get("dosageform")?,
         off_icode: row.try_get("off_icode")?,
@@ -357,6 +362,9 @@ fn prev_order_item_from_row(row: &MySqlRow) -> sqlx::Result<OrderItem> {
         order_time: row.try_get("order_time")?,
         order_type: row.try_get("order_type")?,
         order_owner_type: row.try_get("order_owner_type")?,
+        order_doctor_name: row.try_get("order_doctor_name")?,
+        order_doctor_licenseno: row.try_get("order_doctor_licenseno")?,
+
         order_item_type: row.try_get("order_item_type")?,
         order_item_detail: row.try_get("order_item_detail")?,
         stat: row.try_get("stat")?,
@@ -366,6 +374,8 @@ fn prev_order_item_from_row(row: &MySqlRow) -> sqlx::Result<OrderItem> {
         off_by_datetime: row.try_get("off_by_datetime")?,
         med_name: row.try_get("med_name")?,
         displaycolor: row.try_get("displaycolor")?,
+        addict_type_id: row.try_get("addict_type_id")?,
+        habit_forming_type: row.try_get("habit_forming_type")?,
         generic_name: row.try_get("generic_name")?,
         dosageform: row.try_get("dosageform")?,
         off_icode: None,
@@ -1105,6 +1115,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/drugitems.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/ipt.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/opd_allergy.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/doctor.sql")).execute(&tester.db_pool).await.unwrap();
 
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/ipd_order.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/ipd_order_item.sql")).execute(&tester.db_pool).await.unwrap();
@@ -1113,6 +1124,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/drugitems.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/ipt.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/opd_allergy.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/doctor.sql")).execute(&tester.db_pool).await.unwrap();
 
         // order_date only used for display offed details
         let default = get_order_item(None,None,&OrderParams::default(),&[],&tester.db_pool,&tester.hosxp,&tester.kphis).await.unwrap();
@@ -1167,6 +1179,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/drugitems.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/ipt.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/opd_allergy.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/doctor.sql")).execute(&tester.db_pool).await.unwrap();
 
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/ipd_order.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/ipd_order_item.sql")).execute(&tester.db_pool).await.unwrap();
@@ -1175,6 +1188,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/drugitems.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/ipt.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/opd_allergy.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/doctor.sql")).execute(&tester.db_pool).await.unwrap();
 
         // o.order_confirm='Y' && oi.off_order_item_id IS NULL
         // MUST have 'current_date' and 'an' in params

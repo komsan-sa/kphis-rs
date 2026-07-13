@@ -1,5 +1,7 @@
 ## 0.4.20 ()2026-07-xx
 > - *(Config)* Added `real-ip-header` to get real client IP address behind reverse proxy
+> - *(Config)* Added `hospital-address`
+> - Added `addict-habit-forming-order` report
 
 ## 0.4.19 (2026-07-05)
 > - Added `Refer Note` UI and report

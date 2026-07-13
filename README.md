@@ -341,6 +341,21 @@ FROM hos.opduser u
 WHERE dd.code IS NOT NULL
 ORDER BY dd.code;
 ```
+- Please check `doctor` table set `active` match with `opduser`
+    * `active` should be `N` when not join `opduser` or `opduser.account_disable` = 'Y'
+        ```sql
+        SELECT d.*
+        FROM hos.doctor d
+        LEFT JOIN hos.opduser u ON u.doctorcode=d.`code`
+        WHERE u.doctorcode IS NULL OR (d.active ='Y' AND u.account_disable = 'Y')
+        ```
+    * `active` should be `Y` when `opduser.account_disable` <> 'Y'
+        ```sql
+        SELECT d.*
+        FROM hos.doctor d
+        LEFT JOIN hos.opduser u ON u.doctorcode=d.`code`
+        WHERE u.doctorcode IS NOT NULL AND (d.active IS NULL OR d.active ='N') AND (u.account_disable IS NULL OR u.account_disable = 'N')
+        ```
 - MUST remove `NULL` in table's columns
     * `hos.doctor.name`
     * `hos.er_emergency_level.er_emergency_level_name`
@@ -348,9 +363,12 @@ ORDER BY dd.code;
     * `hos.spclty.name`
     * `hos.ward.name`
 - Please check and change inconsistent data in HOSxP table
-  - `hos.drugitems.dosageform` for config's `hosxp-ivfluid-dosageform` and `hosxp-injection-dosageforms` (in `hos.dosageform` table)
-  - `hos.drugitems.displaycolor` for config's `hosxp-had-displaycolor` and `hosxp-lasa-displaycolor` ex: "255" not "254"
-
+    * `hos.drugitems.dosageform` for config's `hosxp-ivfluid-dosageform` and `hosxp-injection-dosageforms` (in `hos.dosageform` table)
+    * `hos.drugitems.displaycolor` for config's `hosxp-had-displaycolor` and `hosxp-lasa-displaycolor` ex: "255" not "254"
+- Please check `ยาเสพติดให้โทษ` or `วัตถุออกฤทธิ์` in a row of
+    * `hos.drugitems.addict_type_id` value is 2
+    * `hos.drugitems.habit_forming_type` value is 2
+    has `hos.drugitems.units` without inner space (ex. `XXXX`) and `hos.drugitems.strength` as only 1 inner space (ex. `XX XX`) 
 - Please check that `hos.ipt.dchstts` IS NULL only NOT admited and value in admited is match `hos.dchstts.dchstts` ('01','02',.. NOT '0' or '') 
 - Please check `permission` in `previous kphis` MUST within `this kphis` by compare
 ```sql

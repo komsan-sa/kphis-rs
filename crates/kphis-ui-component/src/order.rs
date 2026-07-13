@@ -44,7 +44,10 @@ use kphis_util::{
 
 use crate::{
     admission_note::AdmissionNoteCpn,
-    gadget::{image::ImageCpn, pdf_button::PdfButtons},
+    gadget::{
+        image::ImageCpn,
+        pdf_button::{PdfButtons, static_pdf_btn_with_modal},
+    },
     modal::{
         blank_modal,
         index_plan_action_form::{FormType, IndexPlanActionForm, OrderType},
@@ -2452,7 +2455,7 @@ impl OrderCpn {
                             }
                             // ORDER ITEMS
                             let lis = order_item_type.order_items.iter().map(clone!(app, page, order, due_mutables, flags => move |order_item| {
-                                Self::render_order_item(cpn_id, order_item, order.clone(), is_oneday, due_mutables.clone(), flags.clone(), page.clone(), app.clone())
+                                Self::render_order_item(cpn_id, Rc::new(order_item.to_owned()), order.clone(), is_oneday, due_mutables.clone(), flags.clone(), page.clone(), app.clone())
                             })).collect::<Vec<Dom>>();
                             let list_tag = if order_item_type.is_homemed() {"ol"} else {"ul"};
                             let list = html!(list_tag, {
@@ -2917,7 +2920,16 @@ impl OrderCpn {
         })
     }
 
-    fn render_order_item(cpn_id: &'static str, order_item: &OrderItem, order: Rc<Order>, is_oneday: bool, due_mutables: Rc<DueMutables>, flags: Rc<OrderFlags>, page: Rc<Self>, app: Rc<App>) -> Dom {
+    fn render_order_item(
+        cpn_id: &'static str,
+        order_item: Rc<OrderItem>,
+        order: Rc<Order>,
+        is_oneday: bool,
+        due_mutables: Rc<DueMutables>,
+        flags: Rc<OrderFlags>,
+        page: Rc<Self>,
+        app: Rc<App>,
+    ) -> Dom {
         let is_due = order_item.due_status.as_ref().map(|due_status| due_status == "Y").unwrap_or_default();
         let has_info = order_item.info_status.as_ref().map(|info_status| info_status == "Y").unwrap_or_default();
         let will_blue = if is_oneday {
@@ -3004,6 +3016,37 @@ impl OrderCpn {
                             page.edit_order.set(None);
                         }))
                     })))
+                    // +PLAN BUTTON
+                    .apply_if(
+                        !flags.is_readonly
+                        && flags.is_nurse
+                        && flags.is_confirm
+                        && (flags.is_nurse_accepted || !flags.is_by_doctor)
+                        // && order_item.off_by_datetime.is_none()
+                        && if page.is_ipd {
+                            app.endpoint_is_allow(&Method::GET, &EndPoint::IpdOrderItem, flags.is_pre_admit)
+                        } else {
+                            app.endpoint_is_allow(&Method::GET, &EndPoint::OpdErOrderItem, false)
+                        },
+                    clone!(page, order, order_item => move |dom| dom.child(html!("button", {
+                        .attr("type", "button")
+                        .class(class::BTN_SM_FR_RT_BLUEO)
+                        .attr("data-bs-toggle", "modal")
+                        .attr("data-bs-target", &["#indexPlanActionFormModal", cpn_id].concat())
+                        .text("+Plan")
+                        .event(clone!(page, order_item => move |_: events::Click| {
+                            page.index_plan_action_modal.set(Some(IndexPlanActionForm::new(
+                                order_item.order_item_id,
+                                None,
+                                None,
+                                page.patient.clone(),
+                                OrderType::new_from_str(&order.as_ref().order_type),
+                                FormType::Plan,
+                                page.view_by.clone(),
+                            )));
+                        }))
+                        // ipd-nurse-index-plan-action-form.php::onclickAddIndexPlanOrderItem(event, order_item.order_item_id, order_item.order_item_detail);
+                    }))))
                     // DUE button
                     .apply(|dom| {
                         if is_due && (flags.is_doctor || flags.is_nurse || flags.is_pharmacist) {
@@ -3088,37 +3131,60 @@ impl OrderCpn {
                             dom
                         }
                     })
-                    // +PLAN BUTTON
+                    // ADDICT PDF BUTTON
                     .apply_if(
-                        !flags.is_readonly
+                        order_item.addict_type_id.map(|id| id == 2).unwrap_or_default()
                         && flags.is_nurse
                         && flags.is_confirm
                         && (flags.is_nurse_accepted || !flags.is_by_doctor)
-                        // && order_item.off_by_datetime.is_none()
-                        && if page.is_ipd {
-                            app.endpoint_is_allow(&Method::GET, &EndPoint::IpdOrderItem, flags.is_pre_admit)
-                        } else {
-                            app.endpoint_is_allow(&Method::GET, &EndPoint::OpdErOrderItem, false)
-                        },
-                    clone!(page, order => move |dom| dom.child(html!("button", {
-                        .attr("type", "button")
-                        .class(class::BTN_SM_FR_T_BLUEO)
-                        .attr("data-bs-toggle", "modal")
-                        .attr("data-bs-target", &["#indexPlanActionFormModal", cpn_id].concat())
-                        .text("+Plan")
-                        .event(clone!(page, order_item => move |_: events::Click| {
-                            page.index_plan_action_modal.set(Some(IndexPlanActionForm::new(
-                                order_item.order_item_id,
-                                None,
-                                None,
-                                page.patient.clone(),
-                                OrderType::new_from_str(&order.as_ref().order_type),
-                                FormType::Plan,
-                                page.view_by.clone(),
-                            )));
+                        && app.endpoint_is_allow(&Method::GET, &EndPoint::ReportRawTemplateTypeId, false),
+                    |dom| dom
+                        .child(html!("div", {
+                            .class(class::FLOAT_RRB1)
+                            .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
+                                opt.map(|patient| {
+                                    static_pdf_btn_with_modal(
+                                        "ย.ส.2",
+                                        "ใบสั่งจ่ายยาเสพติดให้โทษในประเภท 2",
+                                        include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                        serde_json::json!({
+                                            "is_addict": true,
+                                            "patient": patient,
+                                            "order_item": order_item,
+                                        }).to_string(),
+                                        app.clone(),
+                                    )
+                                })
+                            })))
                         }))
-                        // ipd-nurse-index-plan-action-form.php::onclickAddIndexPlanOrderItem(event, order_item.order_item_id, order_item.order_item_detail);
-                    }))))
+                    )
+                    // HABIT-FORMING PDF BUTTON
+                    .apply_if(
+                        order_item.habit_forming_type.map(|id| id == 2).unwrap_or_default()
+                        && flags.is_nurse
+                        && flags.is_confirm
+                        && (flags.is_nurse_accepted || !flags.is_by_doctor)
+                        && app.endpoint_is_allow(&Method::GET, &EndPoint::ReportRawTemplateTypeId, false),
+                    |dom| dom
+                        .child(html!("div", {
+                            .class(class::FLOAT_RRB1)
+                            .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
+                                opt.map(|patient| {
+                                    static_pdf_btn_with_modal(
+                                        "ว.จ.2",
+                                        "ใบสั่งจ่ายวัตถุออกฤทธิ์ในประเภท 2",
+                                        include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                        serde_json::json!({
+                                            "is_addict": false,
+                                            "patient": patient,
+                                            "order_item": order_item,
+                                        }).to_string(),
+                                        app.clone(),
+                                    )
+                                })
+                            })))
+                        }))
+                    )
                     // MED NAME
                     .child(html!("span", {
                         .child(html!("span", {
@@ -3191,10 +3257,10 @@ impl OrderCpn {
                     })))
                     // PLAN / ACTION
                     .apply_if(flags.is_doctor || flags.is_nurse || flags.is_pharmacist, |dom| {
-                        dom.children(order_item.index_plans.iter().filter_map(clone!(page, order, flags => move |plan| Self::render_index_plan_badge(
+                        dom.children(order_item.index_plans.iter().filter_map(clone!(page, order, order_item, flags => move |plan| Self::render_index_plan_badge(
                             cpn_id,
                             plan,
-                            order_item,
+                            &order_item,
                             page.current_date.lock_ref().as_ref().map(|od| od.order_date),
                             OrderType::new_from_str(&order.order_type),
                             flags.is_nurse || flags.is_pharmacist,
@@ -3491,6 +3557,7 @@ impl OrderCpn {
                     // onclickOffContinuousOrderItem(event, order_item.order_item_id, (order_item.icode == null ? '' : (order_item.med_name + (order_item.order_item_detail != '' ? '\n' : ''))) + order_item.order_item_detail);
                 }))
             }))))
+            // PLAN BUTTON
             .apply_if(
                 !is_readonly
                 && is_nurse
@@ -3499,7 +3566,7 @@ impl OrderCpn {
                 && app.endpoint_is_allow(&Method::GET, &EndPoint::IpdOrderItem, is_pre_admit),
             clone!(page, order_item, order_type => move |dom| dom.child(html!("button", {
                 .attr("type", "button")
-                .class(class::BTN_SM_FR_T_BLUEO)
+                .class(class::BTN_SM_FR_RT_BLUEO)
                 .attr("data-bs-toggle", "modal")
                 .attr("data-bs-target", &["#indexPlanActionFormModal", cpn_id].concat())
                 .text("+Plan")
@@ -3516,6 +3583,56 @@ impl OrderCpn {
                 }))
                 // ipd-nurse-index-plan-action-form.php::onclickAddIndexPlanOrderItem(event, order_item.order_item_id, order_item.order_item_detail);
             }))))
+            // ADDICT PDF BUTTON
+            .apply_if(
+                order_item.addict_type_id.map(|id| id == 2).unwrap_or_default()
+                && is_nurse
+                && app.endpoint_is_allow(&Method::GET, &EndPoint::ReportRawTemplateTypeId, false),
+            |dom| dom
+                .child(html!("div", {
+                    .class(class::FLOAT_RRB1)
+                    .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
+                        opt.map(|patient| {
+                            static_pdf_btn_with_modal(
+                                "ย.ส.2",
+                                "ใบสั่งจ่ายยาเสพติดให้โทษในประเภท 2",
+                                include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                serde_json::json!({
+                                    "is_addict": true,
+                                    "patient": patient,
+                                    "order_item": order_item,
+                                }).to_string(),
+                                app.clone(),
+                            )
+                        })
+                    })))
+                }))
+            )
+            // HABIT-FORMING PDF BUTTON
+            .apply_if(
+                order_item.habit_forming_type.map(|id| id == 2).unwrap_or_default()
+                && is_nurse
+                && app.endpoint_is_allow(&Method::GET, &EndPoint::ReportRawTemplateTypeId, false),
+            |dom| dom
+                .child(html!("div", {
+                    .class(class::FLOAT_RRB1)
+                    .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
+                        opt.map(|patient| {
+                            static_pdf_btn_with_modal(
+                                "ว.จ.2",
+                                "ใบสั่งจ่ายวัตถุออกฤทธิ์ในประเภท 2",
+                                include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                serde_json::json!({
+                                    "is_addict": false,
+                                    "patient": patient,
+                                    "order_item": order_item,
+                                }).to_string(),
+                                app.clone(),
+                            )
+                        })
+                    })))
+                }))
+            )
             .child(html!("span", {
                 .child(html!("span", {
                     .apply_if(order_item.order_item_type.as_ref().map(|ty| will_blue.contains(&ty.as_str())).unwrap_or_default(), |d| d.class(class::BOLD_BLUE_EM))

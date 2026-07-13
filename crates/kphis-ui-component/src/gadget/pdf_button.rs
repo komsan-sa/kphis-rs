@@ -209,7 +209,7 @@ pub fn static_pdf_btn_with_modal(btn_label: &str, pdf_title: &'static str, templ
         .children([
             html!("button" => HtmlButtonElement, {
                 .attr("type", "button")
-                .class(class::BTN_SM_L_BLUE)
+                .class(class::BTN_SM_BLUE)
                 .attr("data-bs-toggle", "modal")
                 .attr("data-bs-target", &["#",&modal_id].concat())
                 .child(html!("i", {.class(class::FA_FILE_PDF_L)}))
