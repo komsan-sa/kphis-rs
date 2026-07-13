@@ -206,7 +206,13 @@ impl ReportPreview {
         match (&title_with_id_opt, &self.title) {
             (Some(title_with_id), Some(title)) => [title, " (", title_with_id, ")"].concat(),
             (Some(title_with_id), None) => title_with_id.to_owned(),
-            (None, Some(title)) => [title, " (", &self.ids, ")"].concat(),
+            (None, Some(title)) => {
+                if self.ids.is_empty() {
+                    title.to_owned()
+                } else {
+                    [title, " (", &self.ids, ")"].concat()
+                }
+            }
             (None, None) => self.ids.clone(),
         }
     }
