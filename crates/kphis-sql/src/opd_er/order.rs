@@ -153,7 +153,7 @@ pub fn select_order_item(
     let order_item_type = if has_order_item_type {" AND oi.order_item_type=? "} else {""};
     let order_type = if params.order_type.is_some() {" AND o.order_type=? "} else {""};
     [
-        "SELECT oi.*,om.vn,o.order_date,o.order_time,o.order_type,o.order_owner_type,ooi.order_item_detail AS off_order_item_detail,\
+        "SELECT oi.*,om.vn,o.order_date,o.order_time,o.order_type,o.order_owner_type,ooi.order_item_detail AS off_order_item_detail,d.`name` AS order_doctor_name,d.`licenseno` AS order_doctor_licenseno,\
         dud.`usage` AS due_usage,dud.status AS due_status,dud.monitor,dud.monitor_count,dud.monitor_duration,dud.monitor_status,dud.info,dud.info_status,\
             (SELECT TIMESTAMP(off_by_order.order_date,off_by_order.order_time) FROM ",kphis,".opd_er_order_item obi \
                 JOIN ",kphis,".opd_er_order off_by_order ON obi.order_id=off_by_order.order_id ",vb,
@@ -173,6 +173,7 @@ pub fn select_order_item(
             LEFT JOIN ",hosxp,".drugitems off_di ON off_di.icode=ooi.icode \
             LEFT JOIN ",kphis,".opd_er_order_master om ON o.opd_er_order_master_id=om.opd_er_order_master_id \
             LEFT JOIN ",hosxp,".ovst ON ovst.vn=om.vn \
+            LEFT JOIN ",hosxp,".doctor d ON d.`code`=IF(o.nurse_order_as IS NULL,o.order_doctor,o.nurse_order_as) \
             LEFT JOIN ",hosxp,".opd_allergy allergy ON (\
                 (allergy.agent LIKE CONCAT('%',di.generic_name,'%') AND allergy.hn=ovst.hn AND di.generic_name IS NOT NULL AND TRIM(di.generic_name) <> '') \
                 OR (di.generic_name LIKE CONCAT('%',allergy.agent,'%') AND allergy.hn=ovst.hn AND allergy.agent IS NOT NULL AND TRIM(allergy.agent) <> '')) \

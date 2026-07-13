@@ -172,7 +172,7 @@ pub fn select_order_item(
     let order_type = if params.order_type.is_some() {" AND o.order_type=? "} else {""};
     // removed from end of line 3 : AND off_by_order.an=ioi.an AND off_by_order.order_date=? \
     [
-        "SELECT oi.*,o.order_date,o.order_time,o.order_type,o.order_owner_type,ooi.order_item_detail AS off_order_item_detail,\
+        "SELECT oi.*,o.order_date,o.order_time,o.order_type,o.order_owner_type,ooi.order_item_detail AS off_order_item_detail,d.`name` AS order_doctor_name,d.`licenseno` AS order_doctor_licenseno,\
             dud.`usage` AS due_usage,dud.status AS due_status,dud.monitor,dud.monitor_count,dud.monitor_duration,dud.monitor_status,dud.info,dud.info_status,\
             (SELECT TIMESTAMP(off_by_order.order_date,off_by_order.order_time) FROM ",kphis,".ipd_order_item ioi \
                 JOIN ",kphis,".ipd_order off_by_order ON ioi.order_id=off_by_order.order_id \
@@ -192,6 +192,7 @@ pub fn select_order_item(
             LEFT JOIN ",hosxp,".drugitems di ON di.icode=oi.icode \
             LEFT JOIN ",hosxp,".drugitems off_di ON off_di.icode=ooi.icode \
             LEFT JOIN ",hosxp,".ipt ON o.an=ipt.an \
+            LEFT JOIN ",hosxp,".doctor d ON d.`code`=IF(o.nurse_order_as IS NULL,o.order_doctor,o.nurse_order_as) \
             LEFT JOIN ",hosxp,".opd_allergy allergy ON (\
                 (allergy.agent LIKE CONCAT('%',di.generic_name,'%') AND allergy.hn=ipt.hn AND di.generic_name IS NOT NULL AND TRIM(di.generic_name) <> '') \
                 OR (di.generic_name LIKE CONCAT('%',allergy.agent,'%') AND allergy.hn=ipt.hn AND allergy.agent IS NOT NULL AND TRIM(allergy.agent) <> '')) \
@@ -430,7 +431,7 @@ pub fn select_previous(params: &OrderParams, hosxp: &str, kphis: &str) -> String
     // removed from end of line 3 :  AND ofi.an=off.an AND off.order_date=? \
     [
         "SELECT oi.order_item_id,oi.order_id,oi.an,oi.order_item_type,oi.nurse_assign,oi.order_item_detail,oi.stat,oi.off_order_item_id,oi.icode,oi.med_reconciliation_item_id,oi.first_qty,oi.qty,\
-            oi.due_doctor,oi.due_doctor_note,oi.due_pharm,oi.due_pharm_note,o.order_type,o.order_owner_type,\
+            oi.due_doctor,oi.due_doctor_note,oi.due_pharm,oi.due_pharm_note,o.order_type,o.order_owner_type,d.`name` AS order_doctor_name,d.`licenseno` AS order_doctor_licenseno,\
             (SELECT TIMESTAMP(off.order_date,off.order_time) FROM ",kphis,".ipd_order_item ofi JOIN ",kphis,".ipd_order off ON ofi.order_id=off.order_id \
                 AND ((off.order_date = DATE(NOW()) ",view_by1,") OR (off.order_date < DATE(NOW()) AND off.order_confirm='Y')) WHERE ofi.off_order_item_id=oi.order_item_id AND off.an=oi.an LIMIT 1) AS off_by_datetime,\
             IF(mr.custom_med_name IS NULL OR mr.custom_med_name='',CONCAT(di.`name`,' ',di.strength,' ',di.units),mr.custom_med_name) AS med_name,\
@@ -445,6 +446,7 @@ pub fn select_previous(params: &OrderParams, hosxp: &str, kphis: &str) -> String
             LEFT JOIN ",kphis,".ipd_med_reconciliation_item mr ON mr.med_reconciliation_item_id=oi.med_reconciliation_item_id \
             LEFT JOIN ",hosxp,".drugitems di ON di.icode=oi.icode \
             LEFT JOIN ",hosxp,".ipt ON o.an=ipt.an \
+            LEFT JOIN ",hosxp,".doctor d ON d.`code`=IF(o.nurse_order_as IS NULL,o.order_doctor,o.nurse_order_as) \
             LEFT JOIN ",hosxp,".opd_allergy allergy ON (\
                 (allergy.agent LIKE CONCAT('%',di.generic_name,'%') AND allergy.hn=ipt.hn AND di.generic_name IS NOT NULL AND TRIM(di.generic_name) <> '') OR \
                 (di.generic_name LIKE CONCAT('%',allergy.agent,'%') AND allergy.hn=ipt.hn AND allergy.agent IS NOT NULL AND TRIM(allergy.agent) <> '')) \

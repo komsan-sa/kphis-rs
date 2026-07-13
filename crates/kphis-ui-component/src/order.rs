@@ -3098,7 +3098,7 @@ impl OrderCpn {
                     |dom| dom
                         .child(html!("div", {
                             .class(class::FLOAT_RRB1)
-                            .child_signal(page.patient.signal_cloned().map(clone!(app, order, order_item => move |opt| {
+                            .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
                                 opt.map(|patient| {
                                     static_pdf_btn_with_modal(
                                         "ย.ส.2",
@@ -3107,8 +3107,6 @@ impl OrderCpn {
                                         serde_json::json!({
                                             "is_addict": true,
                                             "patient": patient,
-                                            "order_doctor_name": order.order_doctor_name,
-                                            "order_doctor_licenseno": order.order_doctor_licenseno,
                                             "order_item": order_item,
                                         }).to_string(),
                                         app.clone(),
@@ -3127,7 +3125,7 @@ impl OrderCpn {
                     |dom| dom
                         .child(html!("div", {
                             .class(class::FLOAT_RRB1)
-                            .child_signal(page.patient.signal_cloned().map(clone!(app, order, order_item => move |opt| {
+                            .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
                                 opt.map(|patient| {
                                     static_pdf_btn_with_modal(
                                         "ว.จ.2",
@@ -3136,8 +3134,6 @@ impl OrderCpn {
                                         serde_json::json!({
                                             "is_addict": false,
                                             "patient": patient,
-                                            "order_doctor_name": order.order_doctor_name,
-                                            "order_doctor_licenseno": order.order_doctor_licenseno,
                                             "order_item": order_item,
                                         }).to_string(),
                                         app.clone(),
@@ -3549,6 +3545,57 @@ impl OrderCpn {
                     // onclickOffContinuousOrderItem(event, order_item.order_item_id, (order_item.icode == null ? '' : (order_item.med_name + (order_item.order_item_detail != '' ? '\n' : ''))) + order_item.order_item_detail);
                 }))
             }))))
+            // ADDICT PDF BUTTON
+            .apply_if(
+                order_item.addict_type_id.map(|id| id == 2).unwrap_or_default()
+                && is_nurse
+                && app.endpoint_is_allow(&Method::GET, &EndPoint::ReportRawTemplateTypeId, false),
+            |dom| dom
+                .child(html!("div", {
+                    .class(class::FLOAT_RRB1)
+                    .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
+                        opt.map(|patient| {
+                            static_pdf_btn_with_modal(
+                                "ย.ส.2",
+                                "ใบสั่งจ่ายยาเสพติดให้โทษในประเภท 2",
+                                include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                serde_json::json!({
+                                    "is_addict": true,
+                                    "patient": patient,
+                                    "order_item": order_item,
+                                }).to_string(),
+                                app.clone(),
+                            )
+                        })
+                    })))
+                }))
+            )
+            // HABIT-FORMING PDF BUTTON
+            .apply_if(
+                order_item.habit_forming_type.map(|id| id == 2).unwrap_or_default()
+                && is_nurse
+                && app.endpoint_is_allow(&Method::GET, &EndPoint::ReportRawTemplateTypeId, false),
+            |dom| dom
+                .child(html!("div", {
+                    .class(class::FLOAT_RRB1)
+                    .child_signal(page.patient.signal_cloned().map(clone!(app, order_item => move |opt| {
+                        opt.map(|patient| {
+                            static_pdf_btn_with_modal(
+                                "ว.จ.2",
+                                "ใบสั่งจ่ายวัตถุออกฤทธิ์ในประเภท 2",
+                                include_str!("../../../volume/pwa/templates/statics/addict-habit-forming-order.typ"),
+                                serde_json::json!({
+                                    "is_addict": false,
+                                    "patient": patient,
+                                    "order_item": order_item,
+                                }).to_string(),
+                                app.clone(),
+                            )
+                        })
+                    })))       
+                }))
+            )
+            // PLAN BUTTON
             .apply_if(
                 !is_readonly
                 && is_nurse

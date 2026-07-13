@@ -670,6 +670,11 @@ pub struct OrderItem {
     pub order_type: Option<String>,
     #[Demo(value = r#"Some(String::from("nurse"))"#)]
     pub order_owner_type: Option<String>,
+    #[Demo(value = r#"Some(String::from("Dr.Doctor"))"#)]
+    pub order_doctor_name: Option<String>,
+    #[Demo(value = r#"Some(String::from("ว.00000"))"#)]
+    pub order_doctor_licenseno: Option<String>,
+
     #[Demo(value = r#"Some(String::from("med"))"#)]
     pub order_item_type: Option<String>,
     /// OFFed Medicine NOT in hosital-drug-list will store as `med_name`\n`order_item_detail`
@@ -883,6 +888,9 @@ impl From<PreOrderItem> for OrderItem {
             order_time: None,
             order_type: None,
             order_owner_type: None,
+            order_doctor_name: None,
+            order_doctor_licenseno: None,
+
             order_item_type: item.order_item_type,
             order_item_detail: item.order_item_detail,
             stat: item.stat,
@@ -951,6 +959,9 @@ impl From<&Rc<MedReconciliationItem>> for OrderItem {
             order_type: None,
             order_owner_type: None,
             order_item_type: Some(String::from("med")),
+            order_doctor_name: None,
+            order_doctor_licenseno: None,
+
             order_item_detail: item.changed_drugusage.clone().or(item.old_drugusage.clone()),
             stat: Some(String::from("N")),
             off_order_item_id: None,

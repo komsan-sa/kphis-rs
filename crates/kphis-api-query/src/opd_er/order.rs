@@ -205,6 +205,9 @@ fn order_item_from_row(row: &MySqlRow) -> sqlx::Result<OrderItem> {
         order_time: row.try_get("order_time")?,
         order_type: row.try_get("order_type")?,
         order_owner_type: row.try_get("order_owner_type")?,
+        order_doctor_name: row.try_get("order_doctor_name")?,
+        order_doctor_licenseno: row.try_get("order_doctor_licenseno")?,
+
         order_item_type: row.try_get("order_item_type")?,
         order_item_detail: row.try_get("order_item_detail")?,
         stat: row.try_get("stat")?,
@@ -802,6 +805,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/drugitems.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/ovst.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/opd_allergy.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/hosxp/doctor.sql")).execute(&tester.db_pool).await.unwrap();
 
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/opd_er_order_master.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis/opd_er_order.sql")).execute(&tester.db_pool).await.unwrap();
@@ -811,6 +815,7 @@ mod tests {
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/drugitems.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/ovst.sql")).execute(&tester.db_pool).await.unwrap();
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/opd_allergy.sql")).execute(&tester.db_pool).await.unwrap();
+        sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/hosxp/doctor.sql")).execute(&tester.db_pool).await.unwrap();
 
         // order_date only used for display offed details
         let default = get_order_item(None,None,&OrderParams::default(),&tester.db_pool,&tester.hosxp,&tester.kphis).await.unwrap();

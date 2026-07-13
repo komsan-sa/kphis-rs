@@ -4,8 +4,6 @@
 #let is_addict = data.at("is_addict",default:false)
 #let patient = data.at("patient",default: none)
 #let order_item = data.at("order_item",default: none)
-#let order_doctor_name = data.at("order_doctor_name",default: none)
-#let order_doctor_licenseno = data.at("order_doctor_licenseno",default: none)
 // PREPARED FUNCTIONS
 #let table_h(c) = [#align(center,strong(c))]
 #let license_type(s) = if s == none {none} else {
@@ -40,7 +38,7 @@
 #v(0pt)#align(center,line(length:50%,stroke:1pt))
 #align(right,[วันที่ #date_th(order_item.order_date)])
 #v(20pt)
-#h(40pt)ข้าพเจ้า #order_doctor_name ใบอนุญาตประกอบวิชาชีพ#license_type(order_doctor_licenseno) #order_doctor_licenseno ปฏิบัติงาน ณ สถานพยาบาลชื่อ #hospital-name ตั้งอยู่ที่ #hospital-address
+#h(40pt)ข้าพเจ้า #order_item.order_doctor_name ใบอนุญาตประกอบวิชาชีพ#license_type(order_item.order_doctor_licenseno) #order_item.order_doctor_licenseno ปฏิบัติงาน ณ สถานพยาบาลชื่อ #hospital-name ตั้งอยู่ที่ #hospital-address
 #v(20pt)
 #h(40pt)#underline(strong[ขอสั่งจ่าย]) #form_title ดังรายการดังต่อไปนี้ 
 #table(columns:(35pt,100pt,80pt,80pt,80pt,1fr),stroke:.5pt,
@@ -52,7 +50,7 @@
 #h(40pt)ให้แก่ (ชื่อผู้รับการรักษาหรือชื่อเจ้าของสัตว์ซึ่งรับการรักษา) #patient.pname #patient.fname #patient.lname บัตรประจำตัวประชาชนหรือบัตรประจำตัวอื่นที่ทางราชการออกให้ เลขที่ #patient.cid #patient.passport_no ที่อยู่ เลขที่ #patient.homeaddr โทรศัพท์ #patient.hometel
 #v(20pt)
 #align(right,box(width: 280pt, [#align(center,[(ลงมือชื่อ).....................................ผู้อออกใบสั่งจ่าย])
-  #align(center, [(#order_doctor_name)])]))
+  #align(center, [(#order_item.order_doctor_name)])]))
 #v(10pt)
 #underline(strong[หมายเหตุ :])
 #text(12pt,[๑. ให้ขีดฆ่าข้อความที่ไม่ต้องการออก
