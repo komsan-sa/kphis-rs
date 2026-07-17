@@ -589,7 +589,13 @@ impl SummaryPage {
             .first()
             .and_then(|d| d.state.lock_ref().as_ref().map(|dx| (str_some(dx.icd10.clone()), dx.ename.clone())))
             .unwrap_or_default();
-        // status CODE, REVIEW, AUDIT, CLAIM, DONE will turn to CODE
+        // status CODE, REVIEW, AUDIT, CLAIM, DONE will turn to CODE/APPROVE/NULL
+        // read `kphis_model::ipd::summary::sql_where_having` for more information
+        let status = match (page.attending_doctors.lock_ref().is_empty(), page.approve_doctors.lock_ref().is_empty()) {
+            (false, false) => AuditStatus::Code,
+            (false, true) => AuditStatus::Approve,
+            (true, _) => AuditStatus::Null,
+        };
         SummaryDataSave {
             summary_id: page.summary_id.get(),
             an: page.an.get_cloned(),
@@ -616,7 +622,7 @@ impl SummaryPage {
             discharge_status: str_some(page.discharge_status.get_cloned()),
             discharge_type: str_some(page.discharge_type.get_cloned()),
             hospital_refer: page.hospital_refer.lock_ref().as_ref().map(|hosp| hosp.id.clone()),
-            status: AuditStatus::Code.as_data(),
+            status: status.as_data(),
         }
     }
 
