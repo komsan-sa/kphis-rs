@@ -1291,7 +1291,7 @@ impl MenuCpn {
                                             }))
                                             .children([
                                                 html!("span", {
-                                                    .class("me-3")
+                                                    .class("me-2")
                                                     .style("vertical-align","middle")
                                                     .text("ใช้งาน 2FA")
                                                 }),
