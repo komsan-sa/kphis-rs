@@ -1,0 +1,32 @@
+.pin-container {
+    display: flex;
+    justify-content: center;
+    gap: 9px;
+    margin: 9px 0;
+}
+
+.pin-input {
+    width: 45px;
+    height: 55px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 9pt;
+    outline: none;
+    transition: all 0.3s ease;
+    caret-color: transparent;
+    &:focus {
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 3px var(--bs-primary-border-subtle);
+    }
+    &.filled {
+        border-color: var(--bs-info);
+        background-color: var(--bs-tertiary-bg);
+    }
+    @media (max-width: 480px) {
+        width: 50px;
+        height: 60px;
+        font-size: 28px;
+    }
+}

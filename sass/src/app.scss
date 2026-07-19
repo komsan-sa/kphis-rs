@@ -1,6 +1,7 @@
 @use "nice-select2/scss/nice-select2.scss";
 @use "date-picker.scss";
 @use "xray-viewer.scss";
+@use "pin-input.scss";
 
 .app-is-loading, .app-is-loading * {
     cursor: wait;
