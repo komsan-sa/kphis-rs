@@ -455,6 +455,7 @@ pub const FA_ERASER: [&str; 2] = ["fa-solid","fa-eraser"];
 pub const FA_EXT_LINK: [&str; 2] = ["fa-solid","fa-up-right-from-square"];
 pub const FA_EXT_LINK_R: [&str; 3] = ["fa-solid","fa-up-right-from-square","ms-1"];
 pub const FA_EYE: [&str; 2] = ["fa-regular","fa-eye"];
+pub const FA_EYE_SLASH: [&str; 2] = ["fa-regular","fa-eye-slash"];
 pub const FA_FACE_ANGRY: [&str; 2] = ["fa-regular","fa-face-angry"];
 pub const FA_FILE: [&str; 2] = ["fa-regular","fa-file"];
 pub const FA_FILE_L: [&str; 3] = ["fa-regular","fa-file","me-1"];
@@ -833,6 +834,7 @@ pub const TXT_BLUE_R: [&str; 2] = ["text-primary","ms-1"];
 pub const TXT_BG_BLUE_RT: [&str; 3] = ["text-bg-primary","me-1","mb-1"];
 
 pub const TXT_CB: [&str; 2] = ["text-center","mt-2"];
+pub const TXT_CT: [&str; 2] = ["text-center","mb-2"];
 pub const TXT_C_P0: [&str; 2] = ["text-center","p-0"];
 pub const TXT_C_P1: [&str; 2] = ["text-center","p-1"];
 pub const TXT_C_P2: [&str; 2] = ["text-center","p-2"];

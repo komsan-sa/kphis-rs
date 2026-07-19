@@ -1,7 +1,7 @@
 use dominator::{Dom, EventOptions, clone, events, html, is_window_loaded, link, with_node};
 use futures_signals::{
     map_ref,
-    signal::{Mutable, SignalExt, or},
+    signal::{Mutable, SignalExt},
     signal_vec::SignalVecExt,
 };
 use std::rc::Rc;
@@ -30,6 +30,7 @@ use kphis_util::{
 };
 
 use crate::{
+    gadget::pin_code::PinCode,
     modal::{blank_modal, drug_details::DrugDetailModal},
     order::ORDER_STYLE,
 };
@@ -1290,7 +1291,7 @@ impl MenuCpn {
                                             }))
                                             .children([
                                                 html!("span", {
-                                                    .class("mx-1")
+                                                    .class("me-3")
                                                     .style("vertical-align","middle")
                                                     .text("ใช้งาน 2FA")
                                                 }),
@@ -1317,6 +1318,40 @@ impl MenuCpn {
                                                 })
                                             })))
                                         }))
+                                        .child_signal(menu.totp_qr.signal_cloned().map(clone!(app, menu => move |qr_code| {
+                                            (!qr_code.is_empty()).then(|| {
+                                                let submit = Mutable::new(false);
+                                                let pincode = PinCode::new(menu.token_2fa.clone(), submit.clone());
+                                                html!("div", {
+                                                    .children([
+                                                        html!("img", {
+                                                            .attr("src", &["data:image/jpeg;base64,", &qr_code].concat())
+                                                        }),
+                                                        html!("div", {
+                                                            .class(class::TXT_CT)
+                                                            .text("Scan ด้วย Authenticator Application")
+                                                            .child(html!("br"))
+                                                            .text("เช่น Google Authenticator เพื่อสร้าง Token")
+                                                            .child(html!("br"))
+                                                            .text("สำหรับเข้าสู่ระบบทุกครั้ง")
+                                                        }),
+                                                        html!("div", {
+                                                            .future(map_ref!(
+                                                                let busy = app.loader_is_loading(),
+                                                                let submit = submit.signal() =>
+                                                                !busy && *submit
+                                                            ).for_each(clone!(menu, app => move |ready| {
+                                                                if ready {
+                                                                    Self::submit_2fa(menu.clone(), app.clone());
+                                                                }
+                                                                async {}
+                                                            })))
+                                                            .child(PinCode::render(pincode))
+                                                        }),
+                                                    ])
+                                                })
+                                            })
+                                        })))
                                         .child_signal(menu.token_2fa_result.signal_cloned().map(|result| {
                                             (!result.is_empty()).then(|| {
                                                 html!("div", {
@@ -1326,69 +1361,6 @@ impl MenuCpn {
                                                 })
                                             })
                                         }))
-                                        .child_signal(menu.totp_qr.signal_cloned().map(clone!(app, menu => move |qr_code| {
-                                            (!qr_code.is_empty()).then(|| {
-                                                html!("div", {
-                                                    .children([
-                                                        html!("div", {
-                                                            .child(html!("div", {
-                                                                .class(class::INPUT_GROUP_SM_MC)
-                                                                .style("max-width","300px")
-                                                                .children([
-                                                                    doms::span_group_text("กรุณากรอก 2FA Token"),
-                                                                    html!("input" => HtmlInputElement, {
-                                                                        .attr("type","text")
-                                                                        .class(class::FORM_CTRL_SM)
-                                                                        .focused(true)
-                                                                        .attr("autocomplete", "off")
-                                                                        .prop_signal("value", menu.token_2fa.signal_cloned())
-                                                                        .with_node!(element => {
-                                                                            .future(or(app.loader_is_loading(), app.sse_ready_state.signal_cloned().map(|state| state != 1)).for_each(clone!(element => move |disable| {
-                                                                                element.set_disabled(disable);
-                                                                                async {}
-                                                                            })))
-                                                                            .event(clone!(app, menu => move |_: events::Input| {
-                                                                                let v = element.value();
-                                                                                let v_len = v.len();
-                                                                                menu.token_2fa.set(v);
-                                                                                if v_len == 6 {
-                                                                                    Self::submit_2fa(menu.clone(), app.clone());
-                                                                                }
-                                                                            }))
-                                                                        })
-                                                                        .event_with_options(&EventOptions::preventable(), clone!(app, menu => move |event: events::KeyDown| {
-                                                                            if event.key() == "Enter" {
-                                                                                event.prevent_default();
-                                                                                Self::submit_2fa(menu.clone(), app.clone());
-                                                                            }
-                                                                        }))
-                                                                    }),
-                                                                    html!("button" => HtmlButtonElement, {
-                                                                        .attr("type","button")
-                                                                        .class(class::BTN_SM_BLUEO)
-                                                                        .text("ยืนยัน")
-                                                                        .apply(mixins::click_with_loader_checked(clone!(app, menu => move || {
-                                                                            Self::submit_2fa(menu.clone(), app.clone());
-                                                                        }), app.state()))
-                                                                    }),
-                                                                ])
-                                                            }))
-                                                        }),
-                                                        html!("img", {
-                                                            .attr("src", &["data:image/jpeg;base64,", &qr_code].concat())
-                                                        }),
-                                                    ])
-                                                    .child(html!("div", {
-                                                        .class("text-center")
-                                                        .text("Scan ด้วย Authenticator Application")
-                                                        .child(html!("br"))
-                                                        .text("เช่น Google Authenticator เพื่อสร้าง Token")
-                                                        .child(html!("br"))
-                                                        .text("(ตัวเลข 6 หลัก) สำหรับเข้าสู่ระบบในครั้งต่อๆไป")
-                                                    }))
-                                                })
-                                            })
-                                        })))
                                     }),
                                     html!("div", {.class("dropdown-divider")}),
                                     // cache control changer

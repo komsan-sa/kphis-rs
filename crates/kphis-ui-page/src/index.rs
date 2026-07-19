@@ -13,6 +13,7 @@ use kphis_model::{
     user::his::{LoginResponse, hash},
 };
 use kphis_ui_app::App;
+use kphis_ui_component::gadget::pin_code::PinCode;
 use kphis_ui_core::{class, token::set_user};
 use kphis_util::error::CONTACT_ADMIN;
 
@@ -131,8 +132,10 @@ impl IndexPage {
                         Err(e) => {
                             if e.status != 401 {
                                 app.alert_app_error(&e).await;
+                                page.token_2fa.set_neq(String::new());
                                 page.result.set_neq(e.message.clone());
                             } else {
+                                page.token_2fa.set_neq(String::new());
                                 page.result.set_neq(String::from("Token ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"));
                             }
                         }
@@ -335,47 +338,8 @@ impl IndexPage {
                                     })))
                                     .child_signal(page.wait_2fa.signal_cloned().map(clone!(app, page => move |wait_2fa| {
                                         if wait_2fa {
-                                            Some(html!("div",{
-                                                .class("form-floating")
-                                                .children([
-                                                    html!("input" => HtmlInputElement,{
-                                                        .attr("type", "text")
-                                                        .attr("id", "token-2fa")
-                                                        .class(class::FORM_CTRL_LG)
-                                                        .attr("placeholder", "Authenticator Token")
-                                                        .focused(true)
-                                                        .attr("autocomplete", "off")
-                                                        .prop_signal("value", page.token_2fa.signal_cloned())
-                                                        .with_node!(element => {
-                                                            .future(or(app.loader_is_loading(), app.sse_ready_state.signal_cloned().map(|state| state != 1)).for_each(clone!(element => move |disable| {
-                                                                element.set_disabled(disable);
-                                                                if !disable {
-                                                                    element.focus().unwrap();
-                                                                }
-                                                                async {}
-                                                            })))
-                                                            .event(clone!(page => move |_: events::Input| {
-                                                                let v = element.value();
-                                                                let v_len = v.len();
-                                                                page.token_2fa.set(v);
-                                                                if v_len == 6 {
-                                                                    page.changed.set_neq(true);
-                                                                }
-                                                            }))
-                                                        })
-                                                        .event_with_options(&EventOptions::preventable(), clone!(page => move |event: events::KeyDown| {
-                                                            if event.key() == "Enter" {
-                                                                event.prevent_default();
-                                                                page.changed.set_neq(true);
-                                                            }
-                                                        }))
-                                                    }),
-                                                    html!("label", {
-                                                        .attr("for", "token-2fa")
-                                                        .text("Authenticator Token")
-                                                    }),
-                                                ])
-                                            }))
+                                            let pincode = PinCode::new(page.token_2fa.clone(), page.changed.clone());
+                                            Some(PinCode::render(pincode))
                                         } else {
                                             Some(html!("div",{
                                                 // .class("col-md-12")

@@ -1,6 +1,7 @@
 use base64::{Engine, engine::general_purpose::URL_SAFE};
 use encoding_rs::WINDOWS_874;
 use futures_signals::{signal::Mutable, signal_vec::MutableVec};
+use num::ToPrimitive;
 use regex::Regex;
 use rust_decimal::Decimal;
 use std::{
@@ -270,6 +271,25 @@ pub fn explode_get_second_value_u32(text: &str) -> Vec<u32> {
         .map(|s| s.parse::<u32>())
         .collect::<Result<Vec<u32>, std::num::ParseIntError>>()
         .unwrap_or_default()
+}
+
+pub fn text_to_six_digits(input: &str) -> Option<[u8; 6]> {
+    if input.len() == 6 {
+        let chars = input.chars().collect::<Vec<char>>();
+        if chars.iter().all(|c| c.is_ascii_digit()) {
+            let num_1 = chars[0].to_digit(10).and_then(|n| n.to_u8()).unwrap_or_default();
+            let num_2 = chars[1].to_digit(10).and_then(|n| n.to_u8()).unwrap_or_default();
+            let num_3 = chars[2].to_digit(10).and_then(|n| n.to_u8()).unwrap_or_default();
+            let num_4 = chars[3].to_digit(10).and_then(|n| n.to_u8()).unwrap_or_default();
+            let num_5 = chars[4].to_digit(10).and_then(|n| n.to_u8()).unwrap_or_default();
+            let num_6 = chars[5].to_digit(10).and_then(|n| n.to_u8()).unwrap_or_default();
+            Some([num_1, num_2, num_3, num_4, num_5, num_6])
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
 // pub fn hash_to_base64_string(bytes: &[u8]) -> String {
@@ -912,6 +932,17 @@ pub mod tests {
             vec![String::from("A"), String::from("a"), String::from("B")],
             vec![String::from("b"), String::from("C"), String::from("c")],
         ]);
+    }
+
+    #[test]
+    fn test_text_to_six_digits() {
+        assert_eq!(text_to_six_digits("123456"), Some([1,2,3,4,5,6]));
+        assert_eq!(text_to_six_digits("000000"), Some([0,0,0,0,0,0]));
+        assert_eq!(text_to_six_digits("999999"), Some([9,9,9,9,9,9]));
+        assert_eq!(text_to_six_digits(""), None);
+        assert_eq!(text_to_six_digits("12345"), None);
+        assert_eq!(text_to_six_digits("1234567"), None);
+        assert_eq!(text_to_six_digits("a23456"), None);
     }
 
     #[test]
