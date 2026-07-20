@@ -105,6 +105,7 @@ pub struct UserDb {
     pub wide_screen: Option<String>,
     pub totp: Option<String>,
     pub ts: Option<u64>,
+    pub failed: Option<i8>,
     pub totp_done: Option<bool>,
     pub can_passcode: bool,
     pub wards: Vec<String>,

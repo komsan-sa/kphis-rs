@@ -31,6 +31,12 @@ pub fn update_ts(kphis_extra: &str) -> String {
     ["UPDATE ",kphis_extra,".user_config SET ts=? WHERE loginname=? AND totp IS NOT NULL;"].concat()
 }
 
+// UPDATE kphis_extra.user_config SET failed=? WHERE loginname=?;
+/// failed, loginname
+pub fn update_failed(kphis_extra: &str) -> String {
+    ["UPDATE ",kphis_extra,".user_config SET failed=? WHERE loginname=?;"].concat()
+}
+
 // UPDATE kphis_extra.user_config SET totp_done=1 WHERE loginname=? AND totp IS NOT NULL AND ts IS NOT NULL;
 /// loginname
 pub fn update_totp_done(kphis_extra: &str) -> String {

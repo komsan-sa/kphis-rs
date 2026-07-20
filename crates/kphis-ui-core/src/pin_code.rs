@@ -1,10 +1,11 @@
 use dominator::{Dom, EventOptions, clone, events, html, with_node};
 use futures_signals::signal::{Mutable, SignalExt};
-use kphis_ui_core::class;
 use std::rc::Rc;
 use web_sys::HtmlInputElement;
 
 use kphis_util::util::text_to_six_digits;
+
+use crate::class;
 
 #[derive(Default)]
 pub struct PinCode {
@@ -117,7 +118,8 @@ impl PinCode {
                         html!("button", {
                             .attr("type", "button")
                             .class(class::BTN_REDO)
-                            .child(html!("i", {.class(class::FA_X)}))
+                            .child(html!("i", {.class(class::FA_ERASER)}))
+                            .text(" ล้าง")
                             .event(clone!(page => move |_:events::Click| {
                                 page.set_new();
                             }))

@@ -29,6 +29,7 @@ fn user_row(row: &MySqlRow) -> Result<UserDb, AppError> {
         wide_screen: row.try_get("wide_screen").map_err(|e| Source::SQLx.to_error(500, e, "Select User"))?,
         totp: row.try_get("totp").map_err(|e| Source::SQLx.to_error(500, e, "Select User"))?,
         ts: row.try_get("ts").map_err(|e| Source::SQLx.to_error(500, e, "Select User"))?,
+        failed: row.try_get("failed").map_err(|e| Source::SQLx.to_error(500, e, "Select User"))?,
         totp_done: row.try_get("totp_done").map_err(|e| Source::SQLx.to_error(500, e, "Select User"))?,
         can_passcode: row.try_get("can_passcode").map_err(|e| Source::SQLx.to_error(500, e, "Select User"))?,
         wards: wards_str.map(|s| s.split(',').map(|c| c.to_owned()).collect::<Vec<String>>()).unwrap_or_default(),
