@@ -4157,15 +4157,18 @@ impl OrderCpn {
                             if let Some(action) = actions_all.iter().find(|action| action.action_date.is_some() && action.action_date == current_date) {
                                 let msg = action.action_result.clone().unwrap_or_default();
                                 if msg.len() > 9 {
-                                    d.children([
-                                        html!("i", {.class(class::FA_INFO)}),
-                                        html!("span", {
-                                            .class("app-tooltip-message")
-                                            .text(&msg)
-                                        }),
-                                    ])
+                                    d.child(html!("span", {
+                                        .class(["app-tooltip-hoverable","ms-1"])
+                                        .children([
+                                            html!("i", {.class(class::FA_INFO)}),
+                                            html!("span", {
+                                                .class("app-tooltip-message")
+                                                .text(&msg)
+                                            }),
+                                        ])
+                                    }))
                                 } else {
-                                    d.class("text-primary").text(&msg)
+                                    d.class(class::TXT_BLUE_R).text(&msg)
                                 }
                             } else {
                                 d
