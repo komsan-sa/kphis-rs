@@ -56,7 +56,7 @@ pub async fn update_token(app: Rc<AppState>) -> bool {
                         } else {
                             // |   | access expired |   | last xx minutes | X | refresh expired | X |
                             // refresh token will expired in xx mins, renew refresh token
-                            let popup = PromptPasswordPopup::new();
+                            let popup = PromptPasswordPopup::new(user.user.totp_done.get().unwrap_or_default());
                             // bootstrap modal will lock focus only within .modal-content
                             // so we need to append to '.modal.show .modal-body' if exist
                             match app.query_selector(".modal.show .modal-body").or(app.get_id("popup")) {

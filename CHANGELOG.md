@@ -3,6 +3,7 @@
 > - *(Config)* Added `hospital-address`
 > - Added `addict-habit-forming-order` report
 > - Changed 2FA input to 6 boxs
+> - *(Schema)* Added `failed` column to `kphis_extra.user_config`
 
 ## 0.4.19 (2026-07-05)
 > - Added `Refer Note` UI and report

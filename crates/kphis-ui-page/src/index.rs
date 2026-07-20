@@ -13,8 +13,7 @@ use kphis_model::{
     user::his::{LoginResponse, hash},
 };
 use kphis_ui_app::App;
-use kphis_ui_component::gadget::pin_code::PinCode;
-use kphis_ui_core::{class, token::set_user};
+use kphis_ui_core::{class, pin_code::PinCode, token::set_user};
 use kphis_util::error::CONTACT_ADMIN;
 
 /// - POST `EndPoint::User`
@@ -87,12 +86,11 @@ impl IndexPage {
                                     page.wait_2fa.set(true);
                                 }
                                 Err(e) => {
-                                    if e.status != 401 {
-                                        app.alert_app_error(&e).await;
-                                        page.result.set_neq(e.message.clone());
-                                    } else {
-                                        page.token_2fa.set_neq(String::new());
+                                    page.token_2fa.set_neq(String::new());
+                                    if e.status == 401 {
                                         page.result.set_neq(String::from("ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"));
+                                    } else {
+                                        page.result.set_neq(e.message);
                                     }
                                 }
                             }
@@ -122,21 +120,22 @@ impl IndexPage {
                         Ok(Some(response)) => {
                             Self::login_success(response, page.clone(), app.clone()).await;
                         }
-                        Ok(None) => {
-                            page.username.set_neq(String::new());
-                            page.password.set_neq(String::new());
-                            page.token_2fa.set_neq(String::new());
-                            page.wait_2fa.set(false);
-                            page.result.set_neq(["ใช้เวลาบันทึก 2FA เกิน ", &app.handshake_2fa_timeout_second().to_string(), " วินาที กรุณาเข้าสู่ระบบใหม่อีกครั้ง"].concat());
-                        }
+                        Ok(None) => {}
                         Err(e) => {
-                            if e.status != 401 {
-                                app.alert_app_error(&e).await;
-                                page.token_2fa.set_neq(String::new());
-                                page.result.set_neq(e.message.clone());
-                            } else {
-                                page.token_2fa.set_neq(String::new());
-                                page.result.set_neq(String::from("Token ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"));
+                            page.token_2fa.set_neq(String::new());
+                            match e.status {
+                                401 => {
+                                    page.result.set_neq(String::from("Token ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"));
+                                }
+                                408 => {
+                                    page.username.set_neq(String::new());
+                                    page.password.set_neq(String::new());
+                                    page.wait_2fa.set(false);
+                                    page.result.set_neq(["ใช้เวลาบันทึก 2FA เกิน ", &app.handshake_2fa_timeout_second().to_string(), " วินาที กรุณาเข้าสู่ระบบใหม่อีกครั้ง"].concat());
+                                }
+                                _ => {
+                                    page.result.set_neq(e.message);
+                                }
                             }
                         }
                     }

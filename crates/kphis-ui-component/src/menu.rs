@@ -23,14 +23,13 @@ use kphis_model::{
     },
 };
 use kphis_ui_app::App;
-use kphis_ui_core::{binding::NiceSelect, class, doms, mixins, token::set_user};
+use kphis_ui_core::{binding::NiceSelect, class, doms, mixins, pin_code::PinCode};
 use kphis_util::{
     datetime::{date_th, datetime_th, datetime_th_opt, datetime_th_opt_relative, time_hm},
     util::str_some,
 };
 
 use crate::{
-    gadget::pin_code::PinCode,
     modal::{blank_modal, drug_details::DrugDetailModal},
     order::ORDER_STYLE,
 };
@@ -212,30 +211,29 @@ impl MenuCpn {
                     // get user and token
                     // PATCH `EndPoint::User`
                     match LoginResponse::call_api_patch_access_2fa(true, &username, &token_2fa, app.state()).await {
-                        Ok(Some(response)) => {
-                            if let Err(e) = set_user(Some(response), app.state()) {
-                                app.alert_app_error(&e).await;
-                                menu.token_2fa.set(String::new());
-                                menu.token_2fa_result.set_neq(e.message.clone());
-                            } else {
-                                menu.totp_qr.set(String::new());
-                                menu.token_2fa.set(String::new());
-                                menu.token_2fa_result.set(String::new());
+                        Ok(_) => {
+                            menu.totp_qr.set(String::new());
+                            menu.token_2fa.set(String::new());
+                            menu.token_2fa_result.set(String::new());
+                            if let Some(user) = app.user.lock_ref().as_ref() {
+                                user.user.totp_done.set(Some(true));
                             }
                         }
-                        Ok(None) => {
-                            post_user_config(Some(true), Some(menu.totp_qr.clone()), app.clone());
-                            menu.token_2fa.set_neq(String::new());
-                            menu.token_2fa_result.set_neq(["ใช้เวลาบันทึก 2FA เกิน ", &app.handshake_2fa_timeout_second().to_string(), " วินาที กรุณาลบรายการใน Authenticator, ทำการ Scan และยันยัน Token ใหม่อีกครั้ง"].concat());
-                        }
                         Err(e) => {
-                            if e.status == 418 {
-                                menu.token_2fa.set(String::new());
-                                menu.token_2fa_result.set_neq(String::from("Token ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"));
-                            } else {
-                                app.alert_app_error(&e).await;
-                                menu.token_2fa.set(String::new());
-                                menu.token_2fa_result.set_neq(e.message.clone());
+                            match e.status {
+                                409 => {
+                                    menu.token_2fa.set(String::new());
+                                    menu.token_2fa_result.set_neq(String::from("Token ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"));
+                                }
+                                408 => {
+                                    post_user_config(Some(true), Some(menu.totp_qr.clone()), app.clone());
+                                    menu.token_2fa.set_neq(String::new());
+                                    menu.token_2fa_result.set_neq(["ใช้เวลาบันทึก 2FA เกิน ", &app.handshake_2fa_timeout_second().to_string(), " วินาที กรุณาลบรายการใน Authenticator, ทำการ Scan และยันยัน Token ใหม่อีกครั้ง"].concat());
+                                }
+                                _ => {
+                                    menu.token_2fa.set(String::new());
+                                    menu.token_2fa_result.set_neq(e.message);
+                                }
                             }
                         }
                     }

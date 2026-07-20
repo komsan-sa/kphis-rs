@@ -33,6 +33,7 @@ use kphis_util::{
 };
 
 pub const COOKIE_TOKEN_NAME: &str = "REFRESH";
+const FAILURE_LIMIT: i8 = 99;
 
 // from SessionManager.php::checklogin() plus access token and refresh token cookie
 // return 401 Unauthorized when user not found and failed password checking
@@ -58,13 +59,35 @@ pub async fn check_login(
         .await?
         .ok_or_else(|| AppError::app_401("Check Login").with_title(ErrorTitle::Security))?;
 
+    // lock with failed limit
+    if user.failed.unwrap_or_default() >= FAILURE_LIMIT {
+        return Err(Source::App.to_error(403, "Locked", "Check Login").with_title(ErrorTitle::Security));
+    }
+
     if user.doctorcode.is_none() {
         return Err(Source::App.to_error(403, "No doctorcode", "Check Login").with_title(ErrorTitle::Security));
     }
     // check password
-    if let Err(e) = verify_password(&user.passweb, &payload.password) {
-        tracing::warn!("user {} failed to login with {}", user.name, e.message);
-        return Err(e);
+    match verify_password(&user.passweb, &payload.password) {
+        Ok(()) => {
+            if !user.totp_done.unwrap_or_default() {
+                if config::update_failed(0, &user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() == 0 {
+                    return Err(Source::App.to_error(500, "Unexpected Error", "Check Login").with_title(ErrorTitle::Security));
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!("user {} failed to login with {}", user.name, e.message);
+            if config::update_failed(user.failed.unwrap_or_default() + 1, &user.loginname, &app.db_pool, &app.kphis_extra())
+                .await?
+                .rows_affected()
+                == 0
+            {
+                return Err(Source::App.to_error(500, "Unexpected Error", "Check Login").with_title(ErrorTitle::Security));
+            } else {
+                return Err(e);
+            }
+        }
     }
 
     // prepare TS for TOTP
@@ -93,12 +116,14 @@ pub async fn check_login(
     Ok(Json(response))
 }
 
-// return 401 Unauthorized when user not found and failed TOTP checking
 // return 500 Internal Server Error for others error occured
 /// /api/user
 ///
-/// Tries to Log-In with TOTP, return single Login Response (Access Token insided) and new Refersh Token in Secure Cookies<br>
-/// or NULL if timeout
+/// Tries to Log-In with TOTP
+/// - Not `is_sub` success: return single Login Response (Access Token insided) and new Refersh Token in Secure Cookies
+/// - `is_sub` success: return NULL
+/// - Not `is_sub` wrong: 401
+/// - `is_sub` wrong: return 409
 #[utoipa::path(
     patch,
     path = "/user",
@@ -122,12 +147,18 @@ pub async fn check_totp(
             }
         }
     } else {
-        payload.username
+        payload.username.clone()
     };
 
-    let mut user = login::get_user(&loginname, &app.db_pool, &app.hosxp(), &app.kphis(), &app.kphis_extra())
+    // we need latest user.ts from database here
+    let user = login::get_user(&loginname, &app.db_pool, &app.hosxp(), &app.kphis(), &app.kphis_extra())
         .await?
         .ok_or_else(|| AppError::app_401("Check TOTP").with_title(ErrorTitle::Security))?;
+
+    // lock with failed limit
+    if user.failed.unwrap_or_default() >= FAILURE_LIMIT {
+        return Err(Source::App.to_error(403, "Locked", "Check TOTP").with_title(ErrorTitle::Security));
+    }
 
     if user.doctorcode.is_none() {
         return Err(Source::App.to_error(403, "No doctorcode", "Check TOTP").with_title(ErrorTitle::Security));
@@ -139,38 +170,59 @@ pub async fn check_totp(
         if ts.saturating_add(app.app_config.handshake_2fa_timeout_second) > now {
             if !totp::verify_totp_encoded_key(&user.loginname, &payload.token_2fa, totp_pk, "KPHIS")? {
                 tracing::warn!("user {} failed to login with wrong TOTP", user.name);
+                if config::update_failed(user.failed.unwrap_or_default() + 1, &user.loginname, &app.db_pool, &app.kphis_extra())
+                    .await?
+                    .rows_affected()
+                    == 0
+                {
+                    return Err(Source::App.to_error(500, "Unexpected Error", "Check TOTP").with_title(ErrorTitle::Security));
+                }
                 if payload.is_sub {
                     // we avoid 401 to prevent user dropped in client
-                    return Err(Source::App.to_error(200, "Try Again", "Check TOTP").with_title(ErrorTitle::Security));
+                    return Err(Source::App.to_error(409, "Try Again", "Check TOTP").with_title(ErrorTitle::Security));
                 } else {
                     return Err(AppError::app_401("Check TOTP").with_title(ErrorTitle::Security));
                 }
-            } else if payload.is_sub {
-                if config::update_totp_done(&user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() > 0 {
-                    user.totp_done = Some(true);
+            } else {
+                if config::update_failed(0, &user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() == 0 {
+                    return Err(Source::App.to_error(500, "Unexpected Error", "Check TOTP").with_title(ErrorTitle::Security));
+                }
+                if payload.is_sub {
+                    if config::update_totp_done(&user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() > 0 {
+                        // update online user's totp_done
+                        let Ulid(state_id) = Ulid::from_string(&payload.username).map_err(|e| Source::UlidDecode.to_error(401, e, "Check TOTP"))?;
+                        let mut guard = app.online_users.lock().await;
+                        if let Some(online_mut) = guard.get_mut(&state_id) {
+                            online_mut.user.totp_done = Some(true);
+                        }
+                    }
                 }
             }
         } else {
             tracing::warn!("user {} timeout for login with TOTP", user.name);
-            return Ok(Json(None));
+            return Err(Source::App.to_error(408, "TOTP TimeOut", "Check TOTP").with_title(ErrorTitle::Security));
         }
     } else {
         return Err(AppError::app_401("Check TOTP").with_title(ErrorTitle::Security));
     }
 
-    let real_addr = app
-        .app_config
-        .real_ip_header
-        .as_ref()
-        .and_then(|real_ip_header| headers.get(real_ip_header))
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.parse::<IpAddr>().ok())
-        .map(|ip| SocketAddr::new(ip, socket_addr.port()))
-        .unwrap_or(socket_addr);
-    let response = login_response(real_addr, &user, &cookies, &app).await?;
-    tracing::info!("User {} Log-in from {}", &user.name, real_addr.to_string());
+    if payload.is_sub {
+        Ok(Json(None))
+    } else {
+        let real_addr = app
+            .app_config
+            .real_ip_header
+            .as_ref()
+            .and_then(|real_ip_header| headers.get(real_ip_header))
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<IpAddr>().ok())
+            .map(|ip| SocketAddr::new(ip, socket_addr.port()))
+            .unwrap_or(socket_addr);
+        let response = login_response(real_addr, &user, &cookies, &app).await?;
+        tracing::info!("User {} Log-in from {}", &user.name, real_addr.to_string());
 
-    Ok(Json(Some(response)))
+        Ok(Json(Some(response)))
+    }
 }
 
 async fn login_response(socket_addr: SocketAddr, user: &UserDb, cookies: &Cookies, app: &ApiState) -> Result<LoginResponse, AppError> {
@@ -353,7 +405,9 @@ pub async fn refresh_cookie(
     match app.online_get(state_id).await {
         Some(UserState { user, roles, permissions, addr, .. }) => {
             // check TOTP
-            if let Some(totp_pk) = &user.totp {
+            if user.totp_done.unwrap_or_default()
+                && let Some(totp_pk) = &user.totp
+            {
                 if !totp::verify_totp_encoded_key(&user.loginname, &payload.token_2fa, totp_pk, "KPHIS")? {
                     tracing::warn!("user {} failed to login with wrong TOTP", user.name);
                     return Err(AppError::app_401("Check Login").with_title(ErrorTitle::Security));

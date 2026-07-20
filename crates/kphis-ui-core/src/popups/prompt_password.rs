@@ -1,5 +1,8 @@
 use dominator::{Dom, EventOptions, clone, events, html, with_node};
-use futures_signals::signal::{Mutable, Signal};
+use futures_signals::{
+    map_ref,
+    signal::{Mutable, Signal, SignalExt},
+};
 use wasm_bindgen::JsCast;
 
 use std::rc::Rc;
@@ -8,10 +11,11 @@ use web_sys::{HtmlDivElement, HtmlElement, HtmlInputElement};
 use kphis_model::app::AppState;
 
 use super::{MODAL, MODAL_CONTENT, PopupAuth};
-use crate::class;
+use crate::{class, pin_code::PinCode};
 
 #[derive(Clone)]
 pub struct PromptPasswordPopup {
+    totp_done: bool,
     password: Mutable<String>,
     token_2fa: Mutable<String>,
     pub result: Mutable<PopupAuth>,
@@ -19,8 +23,9 @@ pub struct PromptPasswordPopup {
 }
 
 impl PromptPasswordPopup {
-    pub fn new() -> Rc<Self> {
+    pub fn new(totp_done: bool) -> Rc<Self> {
         Rc::new(Self {
+            totp_done,
             password: Mutable::new(String::new()),
             token_2fa: Mutable::new(String::new()),
             result: Mutable::new(PopupAuth::Cancel),
@@ -37,7 +42,7 @@ impl PromptPasswordPopup {
     }
 
     pub fn finished(&self) -> impl Signal<Item = bool> + use<> {
-        self.finished.signal_cloned()
+        self.finished.signal()
     }
 
     fn save(&self) {
@@ -67,89 +72,91 @@ impl PromptPasswordPopup {
                 .child(html!("div",{
                     .child(html!("form",{
                         .class(class::ROW_M)
-                        .children([
-                            html!("div",{
+                        .child(html!("div",{
+                            .class(class::COL_MD12_T)
+                            .children([
+                                html!("h4", {.text("กรุณาต่อเวลาการเข้าใช้งาน")}),
+                                html!("p", {
+                                    .text("เรียน \u{00a0}")
+                                    .text(&app.user_name().unwrap_or_default())
+                                }),
+                                html!("p", {
+                                    .text("เนื่องจากท่านได้เข้าใช้งานต่อเนื่องนานเกินกำหนด หากท่านต้องการใช้งานต่อ กรุณากรอกข้อมูลเพื่อยืนยันตัวตนของท่าน")
+                                }),
+                            ])
+                        }))
+                        .apply_if(page.totp_done, |dom| {
+                            let submit = Mutable::new(false);
+                            let pincode = PinCode::new(page.token_2fa.clone(), submit.clone());
+                            dom
+                            .future(map_ref!(
+                                let busy = app.loader_is_loading(),
+                                let submit = submit.signal() =>
+                                !busy && *submit
+                            ).for_each(clone!(page => move |ready| {
+                                if ready {
+                                    page.save();
+                                }
+                                async {}
+                            })))
+                            .child(html!("div",{
                                 .class(class::COL_MD12_T)
+                                .child(PinCode::render(pincode))
+                            }))
+                        })
+                        .child(html!("div",{
+                            .class(class::COL_MD12_T)
+                            .child(html!("div", {
+                                .class("input-group")
                                 .children([
-                                    html!("h4", {.text("Session expired")}),
-                                    html!("p", {
-                                        .text("Hi\u{00a0}")
-                                        .text(&app.user_name().unwrap_or_default())
+                                    html!("div", {
+                                        .class("input-group-text")
+                                        .text("Password")
                                     }),
-                                    html!("p", {
-                                        .text("A password is required to continue without losing your work.")
-                                        .child(html!("br"))
-                                        .text("Cancel will redirect to log-in page.")
-                                    }),
-                                ])
-                            }),
-                            html!("div",{
-                                .class(class::COL_MD12_T)
-                                .child(html!("input" => HtmlInputElement,{
-                                    .attr("type", "password")
-                                    .attr("id", "promptPassword")
-                                    .class(class::FORM_CTRL_LG)
-                                    .attr("placeholder","Password")
-                                    .attr("autocomplete","current-password")
-                                    .prop_signal("value", page.password.signal_cloned())
-                                    .with_node!(element => {
-                                        .event(clone!(page, element => move |_: events::Input| {
-                                            page.password.set(element.value());
-                                        }))
-                                        .event_with_options(&EventOptions::preventable(), clone!(page => move |event: events::KeyDown| {
-                                            if event.key() == "Enter" {
-                                                event.prevent_default();
+                                    html!("input" => HtmlInputElement,{
+                                        .attr("type", "password")
+                                        .attr("id", "promptPassword")
+                                        .class(class::FORM_CTRL_LG)
+                                        .attr("placeholder","Password")
+                                        .attr("autocomplete","current-password")
+                                        .prop_signal("value", page.password.signal_cloned())
+                                        .with_node!(element => {
+                                            .event(clone!(page, element => move |_: events::Input| {
                                                 page.password.set(element.value());
-                                                page.save();
-                                            }
-                                        }))
-                                    })
-                                }))
-                            }),
-                            html!("div",{
-                                .class(class::COL_MD12_T)
-                                .child(html!("input" => HtmlInputElement,{
-                                    .attr("type", "text")
-                                    .attr("id", "prompt2fa")
-                                    .class(class::FORM_CTRL_LG)
-                                    .attr("placeholder","Authenticator Token")
-                                    .prop_signal("value", page.token_2fa.signal_cloned())
-                                    .with_node!(element => {
-                                        .event(clone!(page, element => move |_: events::Input| {
-                                            page.token_2fa.set(element.value());
-                                        }))
-                                        .event_with_options(&EventOptions::preventable(), clone!(page => move |event: events::KeyDown| {
-                                            if event.key() == "Enter" {
-                                                event.prevent_default();
-                                                page.token_2fa.set(element.value());
-                                                page.save();
-                                            }
-                                        }))
-                                    })
-                                }))
-                            }),
-                            html!("div",{
-                                .class(class::TXT_R_PY)
-                                .children([
-                                    html!("button",{
-                                        .attr("type", "button")
-                                        .class(class::BTN_L_BLUE)
-                                        .text("OK")
-                                        .event(clone!(page => move |_: events::Click| {
-                                            page.save();
-                                        }))
-                                    }),
-                                    html!("button", {
-                                        .attr("type", "button")
-                                        .class(class::BTN_GRAY)
-                                        .text("Cancel")
-                                        .event(move |_: events::Click| {
-                                            page.finished.set(true);
+                                            }))
+                                            .event_with_options(&EventOptions::preventable(), clone!(page => move |event: events::KeyDown| {
+                                                if event.key() == "Enter" {
+                                                    event.prevent_default();
+                                                    page.password.set(element.value());
+                                                    page.save();
+                                                }
+                                            }))
                                         })
                                     }),
                                 ])
-                            }),
-                        ])
+                            }))
+                        }))
+                        .child(html!("div",{
+                            .class(class::TXT_R_PY)
+                            .children([
+                                html!("button",{
+                                    .attr("type", "button")
+                                    .class(class::BTN_L_BLUE)
+                                    .text("ใช้งานต่อ")
+                                    .event(clone!(page => move |_: events::Click| {
+                                        page.save();
+                                    }))
+                                }),
+                                html!("button", {
+                                    .attr("type", "button")
+                                    .class(class::BTN_GRAY)
+                                    .text("ออกจากระบบ")
+                                    .event(move |_: events::Click| {
+                                        page.finished.set(true);
+                                    })
+                                }),
+                            ])
+                        }))
                     }))
                 }))
             }))
