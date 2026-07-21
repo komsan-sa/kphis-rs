@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// User Client Configuration
-#[derive(Debug, Demo, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Demo, Default, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!(UserConfig::demo()))]
 pub struct UserConfig {
     /// "light", "dark", "auto"

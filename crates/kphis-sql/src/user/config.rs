@@ -31,10 +31,17 @@ pub fn update_ts(kphis_extra: &str) -> String {
     ["UPDATE ",kphis_extra,".user_config SET ts=? WHERE loginname=? AND totp IS NOT NULL;"].concat()
 }
 
-// UPDATE kphis_extra.user_config SET failed=? WHERE loginname=?;
-/// failed, loginname
-pub fn update_failed(kphis_extra: &str) -> String {
-    ["UPDATE ",kphis_extra,".user_config SET failed=? WHERE loginname=?;"].concat()
+// INSERT INTO kphis_extra.user_config (loginname,failed,create_user,create_datetime,update_user,update_datetime,version) VALUES
+//   (?,?,?,NOW(),?,NOW(),1)
+// ON DUPLICATE KEY UPDATE failed=VALUES(failed),update_user=VALUES(update_user),update_datetime=NOW(),version=(version+1);
+/// loginname, failed, loginname, loginname, 
+pub fn insert_dup_failed(kphis_extra: &str) -> String {
+    [
+        "INSERT INTO ",kphis_extra,".user_config (loginname,failed",TABLE_CREATE_COLUMNS,") VALUES \
+            (?,?",TABLE_CREATE_PREPARED,") \
+        ON DUPLICATE KEY UPDATE failed=VALUES(failed),update_user=VALUES(update_user),update_datetime=NOW(),version=(version+1);"
+    ].concat()
+
 }
 
 // UPDATE kphis_extra.user_config SET totp_done=1 WHERE loginname=? AND totp IS NOT NULL AND ts IS NOT NULL;

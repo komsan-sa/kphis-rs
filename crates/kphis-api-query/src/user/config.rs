@@ -72,10 +72,12 @@ pub async fn update_ts(target_loginname: &str, pool: &Pool<MySql>, kphis_extra: 
         .map_err(|e| Source::SQLx.to_error(500, e, "Update TS"))
 }
 
-pub async fn update_failed(failed: i8, target_loginname: &str, pool: &Pool<MySql>, kphis_extra: &str) -> Result<MySqlQueryResult, AppError> {
-    let sql = config::update_failed(kphis_extra);
+pub async fn insert_dup_failed(failed: i8, target_loginname: &str, pool: &Pool<MySql>, kphis_extra: &str) -> Result<MySqlQueryResult, AppError> {
+    let sql = config::insert_dup_failed(kphis_extra);
     sqlx::query(AssertSqlSafe(sql))
+        .bind(target_loginname)
         .bind(failed)
+        .bind(target_loginname)
         .bind(target_loginname)
         .execute(pool)
         .await
@@ -191,15 +193,14 @@ mod tests {
 
     #[tokio::test]
     #[ignore]
-    async fn sqlx_update_failed() {
+    async fn sqlx_insert_dup_failed() {
         let tester = MySqlTester::new_kphis_extra().await;
         sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/create/kphis_extra/user_config.sql")).execute(&tester.db_pool).await.unwrap();
-        sqlx::query(include_str!("../../../kphis-sqlx-tester/test_sqls/insert/kphis_extra/user_config.sql")).execute(&tester.db_pool).await.unwrap();
 
-        let success = update_failed(99,"user",&tester.db_pool,&tester.kphis_extra).await.unwrap();
-        assert_eq!(success.rows_affected(), 1);
-        let not_found = update_failed(99,"admin",&tester.db_pool,&tester.kphis_extra).await.unwrap();
-        assert_eq!(not_found.rows_affected(), 0);
+        let insert = insert_dup_failed(99,"user",&tester.db_pool,&tester.kphis_extra).await.unwrap();
+        assert_eq!(insert.rows_affected(), 1);
+        let update = insert_dup_failed(99,"user",&tester.db_pool,&tester.kphis_extra).await.unwrap();
+        assert_eq!(update.rows_affected(), 2);
     }
 
     #[tokio::test]
