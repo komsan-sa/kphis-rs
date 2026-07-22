@@ -21,7 +21,8 @@ use kphis_api_core::{
 };
 use kphis_api_query::user::{config, login, totp};
 use kphis_model::{
-    app::AppStatus, user::{
+    app::AppStatus,
+    user::{
         his::{CurrentUserRole, LoginResponse, UserDb, UserRequest, UserRequest2fa, UserRequestFull},
         permission::Permission,
     },
@@ -69,7 +70,8 @@ pub async fn check_login(
     // check password
     match verify_password(&user.passweb, &payload.password) {
         Ok(()) => {
-            if !user.totp_done.unwrap_or_default() {
+            // reset failed tp 0
+            if user.failed.unwrap_or_default() > 0 && !user.totp_done.unwrap_or_default() {
                 if config::insert_dup_failed(0, &user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() == 0 {
                     return Err(Source::App.to_error(500, "Unexpected Error", "Check Login").with_title(ErrorTitle::Security));
                 }
@@ -77,6 +79,7 @@ pub async fn check_login(
         }
         Err(e) => {
             tracing::warn!("user {} failed to login with {}", user.name, e.message);
+            // bump failed +1
             if config::insert_dup_failed(user.failed.unwrap_or_default() + 1, &user.loginname, &app.db_pool, &app.kphis_extra())
                 .await?
                 .rows_affected()
@@ -169,6 +172,7 @@ pub async fn check_totp(
         if ts.saturating_add(app.app_config.handshake_2fa_timeout_second) > now {
             if !totp::verify_totp_encoded_key(&user.loginname, &payload.token_2fa, totp_pk, "KPHIS")? {
                 tracing::warn!("user {} failed to login with wrong TOTP", user.name);
+                // bump failed +1
                 if config::insert_dup_failed(user.failed.unwrap_or_default() + 1, &user.loginname, &app.db_pool, &app.kphis_extra())
                     .await?
                     .rows_affected()
@@ -183,8 +187,11 @@ pub async fn check_totp(
                     return Err(AppError::app_401("Check TOTP").with_title(ErrorTitle::Security));
                 }
             } else {
-                if config::insert_dup_failed(0, &user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() == 0 {
-                    return Err(Source::App.to_error(500, "Unexpected Error", "Check TOTP").with_title(ErrorTitle::Security));
+                // reset failed tp 0
+                if user.failed.unwrap_or_default() > 0 {
+                    if config::insert_dup_failed(0, &user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() == 0 {
+                        return Err(Source::App.to_error(500, "Unexpected Error", "Check TOTP").with_title(ErrorTitle::Security));
+                    }
                 }
                 if payload.is_sub {
                     if config::update_totp_done(&user.loginname, &app.db_pool, &app.kphis_extra()).await?.rows_affected() > 0 {
