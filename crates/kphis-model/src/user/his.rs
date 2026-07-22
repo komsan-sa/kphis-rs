@@ -196,7 +196,6 @@ pub struct UserClient {
     pub sub: String,
     pub iat: u64,
     pub exp: u64,
-    pub rexp: u64,
     pub earlier_second: i64,
 }
 
@@ -217,7 +216,6 @@ pub struct UserClientMutable {
     pub sub: Mutable<String>,
     pub iat: Mutable<u64>,
     pub exp: Mutable<u64>,
-    pub rexp: Mutable<u64>,
     pub earlier_second: Mutable<i64>,
 }
 
@@ -249,7 +247,6 @@ impl From<UserClient> for UserClientMutable {
             sub: Mutable::new(item.sub),
             iat: Mutable::new(item.iat),
             exp: Mutable::new(item.exp),
-            rexp: Mutable::new(item.rexp),
             earlier_second: Mutable::new(item.earlier_second),
         }
     }
@@ -264,7 +261,6 @@ impl From<UserClientMutable> for UserClient {
             sub: item.sub.get_cloned(),
             iat: item.iat.get(),
             exp: item.exp.get(),
-            rexp: item.rexp.get(),
             earlier_second: item.earlier_second.get(),
         }
     }

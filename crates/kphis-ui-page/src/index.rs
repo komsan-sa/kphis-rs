@@ -39,14 +39,14 @@ impl IndexPage {
     }
 
     fn reconnecting(&self, app: Rc<App>) {
-        log::debug!("Try to set a reconnecting timeout");
+        // log::debug!("Try to set a reconnecting timeout");
         let reconnecting = self.reconnecting.clone();
         // if TimeOut already exists, do nothing
         if reconnecting.get().is_none() {
             let timer = Timeout::new(
                 9000,
                 clone!(app, reconnecting => move || {
-                    log::debug!("Reconnecting EventSource..");
+                    // log::debug!("Reconnecting EventSource..");
                     app.update_sw();
                     app.sse_end(false);
                     app.sse_ready_state.set(0);
@@ -58,7 +58,7 @@ impl IndexPage {
             let handle = timer.handle();
             timer.forget();
             reconnecting.set(Some(handle));
-            log::debug!("Wait for reconnecting in 9 seconds..");
+            // log::debug!("Wait for reconnecting in 9 seconds..");
         }
     }
 

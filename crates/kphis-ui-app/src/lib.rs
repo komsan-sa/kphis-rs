@@ -126,7 +126,7 @@ impl App {
                 if token::update_token(state.clone()).await {
                     fut.await;
                 } else {
-                    log::debug!("Load with invalid Token, remove user and redirect to index page");
+                    // log::debug!("Load with invalid Token, remove user and redirect to index page");
                     state.remove_user_and_go_index();
                 }
             });
@@ -268,7 +268,7 @@ impl App {
     pub async fn alert_error_with_clipboard(&self, title: &str, message: &str) {
         // clipboard
         if let Err(e) = JsFuture::from(self.state.window.with(|w| w.navigator().clipboard().write_text(&message))).await {
-            log::debug!("{:?}", e.dyn_ref::<JsString>().map(|s| s.into()).unwrap_or(String::from("Cannot save to Clipboard")));
+            log::error!("{:?}", e.dyn_ref::<JsString>().map(|s| s.into()).unwrap_or(String::from("Cannot save to Clipboard")));
         }
         // red alert popup
         self.alert_error_with_closed(title, message).await;
@@ -365,7 +365,7 @@ impl App {
     }
 
     pub fn sse_new_anonymous(app: Rc<Self>) {
-        log::debug!("Try new anonymous EventSource");
+        // log::debug!("Try new anonymous EventSource");
         if app.sse.get_cloned().is_none() {
             let event_source = EventSource::new("/sse/any").unwrap();
             {
@@ -409,7 +409,7 @@ impl App {
     }
 
     pub fn sse_new(app: Rc<Self>) {
-        log::debug!("Try new EventSource with Id");
+        // log::debug!("Try new EventSource with Id");
         if app.sse.get_cloned().is_none() {
             let event_source = EventSource::new(&["/sse/id/", &app.state_id().unwrap_or_default()].concat()).unwrap();
             {
@@ -519,7 +519,7 @@ impl App {
 
     // with_reconnect will set `sse_ready_state` to 2, so IndexPage will reconnecting EventSource
     pub fn sse_end(&self, with_reconnect: bool) {
-        log::debug!("Try clearing any EventSource");
+        // log::debug!("Try clearing any EventSource");
         // close eventstream
         if let Some(evs) = self.sse.lock_ref().as_ref() {
             evs.close();

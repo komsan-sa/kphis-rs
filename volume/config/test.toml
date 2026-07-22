@@ -87,7 +87,6 @@ log-file = "debug,hyper=warn,sqlx=info"
 #=====#
 access-token-expire-minutes = 30
 refresh-token-expire-minutes = 480
-reauthen-before-refresh-token-expire-minutes = 60
 handshake-2fa-timeout-second = 60
 app-asset-cache-minutes = 1440
 

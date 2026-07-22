@@ -28,7 +28,6 @@ impl TokenType {
 /// create token with claim format = json(sub<Ulid>, name<String>, act<TokenType>, iat<u64>, exp<u64>)
 pub fn gen_token_public(
     sub: u128,
-    name: &str,
     exp_minute: (u64, u64), // (access, refresh)
     old_rexp: Option<u64>,
     token_type: TokenType,
@@ -44,11 +43,9 @@ pub fn gen_token_public(
     };
     let claims = Claims {
         sub: Ulid(sub).to_string(),
-        name: name.to_owned(),
         act: token_type.string(),
         iat,
         exp,
-        rexp,
     };
     let message = serde_json::to_vec(&claims).map_err(|e| Source::SerdeJson.to_error(500, e, "Generate Token"))?;
     let token = PublicToken::sign(key, &message, None, Some(SERVER_ENTITY.as_bytes())).map_err(|e| Source::Pasetors.to_error(500, e, "Generate Token"))?;
@@ -89,7 +86,7 @@ mod tests {
     #[test]
     fn test_gen_new_access_token_and_get_claim_public() {
         let paseto = AsymmetricKeyPair::<V4>::generate().expect("Fail generating keypair");
-        let token = gen_token_public(999, "someone", (3, 30), None, TokenType::Access, &paseto.secret).unwrap();
+        let token = gen_token_public(999, (3, 30), None, TokenType::Access, &paseto.secret).unwrap();
         let claims = get_claim_public(&token, &paseto.public).unwrap();
 
         // dbg!(&token);
@@ -97,48 +94,40 @@ mod tests {
         // dbg!(claims.iat);
 
         assert_eq!(claims.sub, Ulid(999).to_string());
-        assert_eq!(claims.name, String::from("someone"));
         assert_eq!(claims.act, TokenType::Access.string());
         assert_eq!(claims.exp, claims.iat + (3 * 60));
-        assert_eq!(claims.rexp, claims.iat + (30 * 60));
     }
 
     #[test]
     fn test_gen_old_access_token_and_get_claim_public() {
         let paseto = AsymmetricKeyPair::<V4>::generate().expect("Fail generating keypair");
-        let token = gen_token_public(999, "someone", (3, 30), Some(1234567890), TokenType::Access, &paseto.secret).unwrap();
+        let token = gen_token_public(999, (3, 30), Some(1234567890), TokenType::Access, &paseto.secret).unwrap();
         let claims = get_claim_public(&token, &paseto.public).unwrap();
 
         assert_eq!(claims.sub, Ulid(999).to_string());
-        assert_eq!(claims.name, String::from("someone"));
         assert_eq!(claims.act, TokenType::Access.string());
         assert_eq!(claims.exp, claims.iat + (3 * 60));
-        assert_eq!(claims.rexp, 1234567890);
     }
 
     #[test]
     fn test_gen_new_refresh_token_and_get_claim_public() {
         let paseto = AsymmetricKeyPair::<V4>::generate().expect("Fail generating keypair");
-        let token = gen_token_public(999, "someone", (3, 30), None, TokenType::Refresh, &paseto.secret).unwrap();
+        let token = gen_token_public(999, (3, 30), None, TokenType::Refresh, &paseto.secret).unwrap();
         let claims = get_claim_public(&token, &paseto.public).unwrap();
 
         assert_eq!(claims.sub, Ulid(999).to_string());
-        assert_eq!(claims.name, String::from("someone"));
         assert_eq!(claims.act, TokenType::Refresh.string());
         assert_eq!(claims.exp, claims.iat + (30 * 60));
-        assert_eq!(claims.rexp, claims.iat + (30 * 60));
     }
 
     #[test]
     fn test_gen_old_refresh_token_and_get_claim_public() {
         let paseto = AsymmetricKeyPair::<V4>::generate().expect("Fail generating keypair");
-        let token = gen_token_public(999, "someone", (3, 30), Some(1234567890), TokenType::Refresh, &paseto.secret).unwrap();
+        let token = gen_token_public(999, (3, 30), Some(1234567890), TokenType::Refresh, &paseto.secret).unwrap();
         let claims = get_claim_public(&token, &paseto.public).unwrap();
 
         assert_eq!(claims.sub, Ulid(999).to_string());
-        assert_eq!(claims.name, String::from("someone"));
         assert_eq!(claims.act, TokenType::Refresh.string());
         assert_eq!(claims.exp, 1234567890);
-        assert_eq!(claims.rexp, 1234567890);
     }
 }

@@ -215,11 +215,6 @@ impl ApiState {
         let app_config = Arc::new(ApiConfig {
             access_token_expire_minutes: config.get_int("access-token-expire-minutes").ok().and_then(|max| u64::try_from(max).ok()).unwrap_or(60),
             refresh_token_expire_minutes: config.get_int("refresh-token-expire-minutes").ok().and_then(|max| u64::try_from(max).ok()).unwrap_or(960),
-            reauthen_before_refresh_token_expire_minutes: config
-                .get_int("reauthen-before-refresh-token-expire-minutes")
-                .ok()
-                .and_then(|max| u64::try_from(max).ok())
-                .unwrap_or(60),
             handshake_2fa_timeout_second: config.get_int("handshake-2fa-timeout-second").ok().and_then(|max| u64::try_from(max).ok()).unwrap_or(60),
             app_asset_cache_minutes,
             request_body_limited_mb,
@@ -1017,7 +1012,6 @@ pub fn get_state_id(claims: &Claims) -> Result<u128, AppError> {
 pub struct ApiConfig {
     pub access_token_expire_minutes: u64,
     pub refresh_token_expire_minutes: u64,
-    pub reauthen_before_refresh_token_expire_minutes: u64,
     pub handshake_2fa_timeout_second: u64,
     pub app_asset_cache_minutes: u64,
     pub request_body_limited_mb: u8,

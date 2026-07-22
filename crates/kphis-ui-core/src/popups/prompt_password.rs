@@ -6,12 +6,12 @@ use futures_signals::{
 use wasm_bindgen::JsCast;
 
 use std::rc::Rc;
-use web_sys::{HtmlDivElement, HtmlElement, HtmlInputElement};
+use web_sys::{HtmlButtonElement, HtmlDivElement, HtmlElement, HtmlInputElement};
 
 use kphis_model::app::AppState;
 
 use super::{MODAL, MODAL_CONTENT, PopupAuth};
-use crate::{class, pin_code::PinCode};
+use crate::{class, mixins, pin_code::PinCode};
 
 #[derive(Clone)]
 pub struct PromptPasswordPopup {
@@ -20,6 +20,7 @@ pub struct PromptPasswordPopup {
     token_2fa: Mutable<String>,
     pub result: Mutable<PopupAuth>,
     finished: Mutable<bool>,
+    focus_password: Mutable<bool>,
 }
 
 impl PromptPasswordPopup {
@@ -30,6 +31,7 @@ impl PromptPasswordPopup {
             token_2fa: Mutable::new(String::new()),
             result: Mutable::new(PopupAuth::Cancel),
             finished: Mutable::new(false),
+            focus_password: Mutable::new(false),
         })
     }
 
@@ -48,9 +50,12 @@ impl PromptPasswordPopup {
     fn save(&self) {
         let password = self.password.get_cloned();
         let token_2fa = self.token_2fa.get_cloned();
-        let result = if !password.is_empty() { PopupAuth::Ok(password, token_2fa) } else { PopupAuth::Cancel };
-        self.result.set(result);
-        self.finished.set(true);
+        if password.is_empty() {
+            self.focus_password.set(true);
+        } else if !token_2fa.is_empty() {
+            self.result.set(PopupAuth::Ok(password, token_2fa));
+            self.finished.set(true);
+        }
     }
 
     pub fn render(page: Rc<Self>, app: Rc<AppState>) -> Dom {
@@ -89,12 +94,9 @@ impl PromptPasswordPopup {
                             let submit = Mutable::new(false);
                             let pincode = PinCode::new(page.token_2fa.clone(), submit.clone());
                             dom
-                            .future(map_ref!(
-                                let busy = app.loader_is_loading(),
-                                let submit = submit.signal() =>
-                                !busy && *submit
-                            ).for_each(clone!(page => move |ready| {
+                            .future(submit.signal().for_each(clone!(page, submit => move |ready| {
                                 if ready {
+                                    submit.set(false);
                                     page.save();
                                 }
                                 async {}
@@ -120,6 +122,7 @@ impl PromptPasswordPopup {
                                         .attr("placeholder","Password")
                                         .attr("autocomplete","current-password")
                                         .prop_signal("value", page.password.signal_cloned())
+                                        .focused_signal(page.focus_password.signal())
                                         .with_node!(element => {
                                             .event(clone!(page, element => move |_: events::Input| {
                                                 page.password.set(element.value());
@@ -139,10 +142,15 @@ impl PromptPasswordPopup {
                         .child(html!("div",{
                             .class(class::TXT_R_PY)
                             .children([
-                                html!("button",{
+                                html!("button" => HtmlButtonElement,{
                                     .attr("type", "button")
                                     .class(class::BTN_L_BLUE)
                                     .text("ใช้งานต่อ")
+                                    .apply(mixins::other_true_signal_disable(map_ref!{
+                                        let no_password = page.password.signal_ref(|s| s.is_empty()),
+                                        let no_totp = page.token_2fa.signal_ref(|s| s.is_empty()) =>
+                                        *no_password || *no_totp
+                                    }))
                                     .event(clone!(page => move |_: events::Click| {
                                         page.save();
                                     }))

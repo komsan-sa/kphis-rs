@@ -127,10 +127,10 @@ pub async fn fetch_json_api(url: &str, method: &str, body: Option<&JsValue>, app
 
     let value = JsFuture::from(response.json()?).await?;
 
-    if response.status() == 401 {
-        log::debug!("401 from server, remove user and redirect to index page");
-        app.remove_user_and_go_index();
-    }
+    // if response.status() == 401 {
+    //     log::debug!("401 from server, remove user and redirect to index page");
+    //     app.remove_user_and_go_index();
+    // }
 
     if response.ok() { Ok((value, true)) } else { Ok((value, false)) }
 }
@@ -222,10 +222,10 @@ pub async fn fetch_text_api(url: &str, app: Rc<AppState>) -> Result<(JsValue, bo
 
     let response = JsFuture::from(future).await?.unchecked_into::<Response>();
 
-    if response.status() == 401 {
-        log::debug!("401 from server, remove user and redirect to index page");
-        app.remove_user_and_go_index();
-    }
+    // if response.status() == 401 {
+    //     log::debug!("401 from server, remove user and redirect to index page");
+    //     app.remove_user_and_go_index();
+    // }
 
     if response.ok() {
         let value = JsFuture::from(response.text()?).await?;
@@ -260,10 +260,10 @@ pub async fn fetch_blob_api(url: &str, mime: &str, app: Rc<AppState>) -> Result<
 
     let response = JsFuture::from(future).await?.unchecked_into::<Response>();
 
-    if response.status() == 401 {
-        log::debug!("401 from server, remove user and redirect to index page");
-        app.remove_user_and_go_index();
-    }
+    // if response.status() == 401 {
+    //     log::debug!("401 from server, remove user and redirect to index page");
+    //     app.remove_user_and_go_index();
+    // }
 
     if response.ok() {
         let value = JsFuture::from(response.blob()?).await?;
@@ -294,10 +294,10 @@ pub async fn post_multipart(url: &str, body: &FormData, app: Rc<AppState>) -> Re
 
     let response = JsFuture::from(future).await?.unchecked_into::<Response>();
 
-    if response.status() == 401 {
-        log::debug!("401 from server, remove user and redirect to index page");
-        app.remove_user_and_go_index();
-    }
+    // if response.status() == 401 {
+    //     log::debug!("401 from server, remove user and redirect to index page");
+    //     app.remove_user_and_go_index();
+    // }
 
     if response.ok() {
         let value = JsFuture::from(response.json()?).await?;

@@ -322,7 +322,7 @@ impl AppState {
     }
 
     pub fn update_sw(&self) {
-        log::debug!("checking Service Worker for update");
+        // log::debug!("checking Service Worker for update");
         if let Some(elm) = self.get_id("checkUpdate").and_then(|elm| elm.dyn_into::<HtmlElement>().ok()) {
             elm.click();
         }
@@ -625,13 +625,6 @@ impl AppState {
     }
     pub fn token_sub(&self) -> Option<String> {
         self.user.lock_ref().as_ref().map(|user| user.sub.get_cloned())
-    }
-    pub fn token_rexp_with_earlier(&self) -> Option<(u64, i64)> {
-        self.user.lock_ref().as_ref().map(|user| (user.rexp.get(), user.earlier_second.get()))
-    }
-    /// time for re-authen before refresh token expired
-    pub fn reauthen_before_expired_minutes(&self) -> u64 {
-        self.app_status.lock_ref().as_ref().map(|status| status.reauthen_before_refresh_token_expire_minutes).unwrap_or(60)
     }
     pub fn handshake_2fa_timeout_second(&self) -> u64 {
         self.app_status.lock_ref().as_ref().map(|status| status.handshake_2fa_timeout_second).unwrap_or(60)
@@ -1113,8 +1106,6 @@ pub struct AppStatus {
     pub allow_insert_his: bool,
     #[Demo(value = "true")]
     pub can_sign_pdf: bool,
-    #[Demo(value = "30")]
-    pub reauthen_before_refresh_token_expire_minutes: u64,
     #[Demo(value = "60")]
     pub handshake_2fa_timeout_second: u64,
 

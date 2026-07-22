@@ -52,7 +52,7 @@ pub fn render(app: Rc<App>) -> Dom {
 }
 
 async fn render_inner(route: Route, app: Rc<App>) -> Dom {
-    log::debug!("Render {}", route.string());
+    // log::debug!("Render {}", route.string());
 
     // clear Bootstrap `modal-backdrop` if exists by
     // 1. remove <div class="modal-backdrop"></div>
@@ -252,7 +252,7 @@ async fn render_inner(route: Route, app: Rc<App>) -> Dom {
                 }
                 None => {
                     // no user, may not happened because token::update_token() will return false
-                    log::debug!("No User, redirect to index page");
+                    // log::debug!("No User, redirect to index page");
                     app.sse_end(true);
                     Route::Index.hard_redirect();
                     Dom::empty()
@@ -262,7 +262,7 @@ async fn render_inner(route: Route, app: Rc<App>) -> Dom {
     // no refresh token, but route to Index
     } else if matches!(route, Route::Index) {
         if app.user.lock_ref().is_some() {
-            log::debug!("Go back to index page, clear user if exists");
+            // log::debug!("Go back to index page, clear user if exists");
             app.user.set(None);
             app.to_local_storage();
         }
@@ -271,10 +271,10 @@ async fn render_inner(route: Route, app: Rc<App>) -> Dom {
         IndexPage::render(IndexPage::new(), app.clone())
     // no refresh token, may not happened
     } else {
-        log::debug!("Token invalid, remove user and redirect to index page");
+        // log::debug!("Token invalid, remove user and redirect to index page");
         app.sse_end(true);
+        app.route.set_neq(Route::Index);
         app.remove_user_and_go_index();
-        Route::Index.hard_redirect();
         Dom::empty()
     }
 }

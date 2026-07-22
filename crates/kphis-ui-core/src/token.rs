@@ -27,77 +27,54 @@ use crate::popups::{PopupAuth, prompt_password::PromptPasswordPopup};
 // tracing by change `// log::debug!` to `log::debug!`
 /// check access token and refresh token, update user and token to the most usable app.token()
 pub async fn update_token(app: Rc<AppState>) -> bool {
+    // log::debug!("call update_token");
     match app.user.get_cloned() {
         Some(user) => {
             if user.authorized() {
-                // | X | access expired |   | last xx minutes |   | refresh expired |   |
+                // | X | access expired |   | refresh expired |   |
                 // using old access token if old access token not expired
                 // log::debug!("Access Token Valid");
                 true
+            } else if renew_access_token(app.clone()).await {
+                // |   | access expired | X | refresh expired |   |
+                true
             } else {
-                // log::debug!("Access Token Invalid");
-                match app.token_rexp_with_earlier() {
-                    Some((rexp, earlier)) => {
-                        // |   | access expired | ? | last xx minutes | ? | refresh expired | ? |
-                        // access token expired, renew access token
-                        let now = get_timestamp_wasm();
-                        let now_adj = add_u64_with_i64(now, earlier).saturating_add(5); // make client-now == server-now
-                        // log::debug!("Token TS: now {} rexp {}", now, rexp);
-                        if (now_adj + (app.reauthen_before_expired_minutes() * 60)) < rexp {
-                            // |   | access expired | X | last xx minutes |   | refresh expired |   |
-                            // refresh token will not expored in xx mins (with 5 secs transport time), renew access token
-                            // log::debug!("Refresh Token Valid");
-                            renew_access_token(app.clone()).await
-                        } else if rexp < now_adj {
-                            // |   | access expired |   | last xx minutes |   | refresh expired | X |
-                            // refresh token expired (with 5 seconds transfer time)
-                            // log::debug!("Refresh Token Invalid");
-                            false
-                        } else {
-                            // |   | access expired |   | last xx minutes | X | refresh expired | X |
-                            // refresh token will expired in xx mins, renew refresh token
-                            let popup = PromptPasswordPopup::new(user.user.totp_done.get().unwrap_or_default());
-                            // bootstrap modal will lock focus only within .modal-content
-                            // so we need to append to '.modal.show .modal-body' if exist
-                            match app.query_selector(".modal.show .modal-body").or(app.get_id("popup")) {
-                                Some(parent) => {
-                                    let handle = append_dom(&parent, PromptPasswordPopup::render(popup.clone(), app.clone()));
-                                    popup.focus(app.clone());
-                                    match popup.finished().wait_for(true).await {
-                                        Some(is_fin) => {
-                                            if is_fin {
-                                                let result = popup.result.get_cloned();
-                                                handle.discard();
-                                                match result {
-                                                    PopupAuth::Ok(password, token_2fa) => {
-                                                        // log::debug!("Renew Refresh Token");
-                                                        renew_refresh_token(&password, &token_2fa, app).await
-                                                    }
-                                                    PopupAuth::Cancel => {
-                                                        // log::debug!("Cancel Renew Refresh Token");
-                                                        false
-                                                    }
-                                                }
-                                            } else {
-                                                // log::debug!("wait_for return Some(false)");
-                                                false
-                                            }
+                // |   | access expired |   | refresh expired | X |
+                let popup = PromptPasswordPopup::new(user.user.totp_done.get().unwrap_or_default());
+                // bootstrap modal will lock focus only within .modal-content
+                // so we need to append to '.modal.show .modal-body' if exist
+                match app.query_selector(".modal.show .modal-body").or(app.get_id("popup")) {
+                    Some(parent) => {
+                        let handle = append_dom(&parent, PromptPasswordPopup::render(popup.clone(), app.clone()));
+                        popup.focus(app.clone());
+                        match popup.finished().wait_for(true).await {
+                            Some(is_fin) => {
+                                if is_fin {
+                                    let result = popup.result.get_cloned();
+                                    handle.discard();
+                                    match result {
+                                        PopupAuth::Ok(password, token_2fa) => {
+                                            // log::debug!("Renew Refresh Token");
+                                            renew_refresh_token(&password, &token_2fa, app).await
                                         }
-                                        None => {
-                                            // log::debug!("wait_for return None");
+                                        PopupAuth::Cancel => {
+                                            // log::debug!("Cancel Renew Refresh Token");
                                             false
                                         }
                                     }
-                                }
-                                None => {
-                                    // log::debug!("no modal or popup element");
+                                } else {
+                                    // log::debug!("wait_for return Some(false)");
                                     false
                                 }
+                            }
+                            None => {
+                                // log::debug!("wait_for return None");
+                                false
                             }
                         }
                     }
                     None => {
-                        // log::debug!("Access Token Invalid and No exp in Refresh Token");
+                        // log::debug!("no modal or popup element");
                         false
                     }
                 }
@@ -154,7 +131,6 @@ pub fn set_user(token_response: Option<LoginResponse>, app: Rc<AppState>) -> Res
                 user_client.sub.set_neq(claim.sub);
                 user_client.iat.set_neq(claim.iat);
                 user_client.exp.set_neq(claim.exp);
-                user_client.rexp.set_neq(claim.rexp);
                 user_client.earlier_second.set_neq(earlier_second);
             }
             None => {
@@ -169,7 +145,6 @@ pub fn set_user(token_response: Option<LoginResponse>, app: Rc<AppState>) -> Res
                     sub: claim.sub,
                     iat: claim.iat,
                     exp: claim.exp,
-                    rexp: claim.rexp,
                     earlier_second,
                 };
                 // clear SSE messages and InMemory stuff
@@ -191,15 +166,15 @@ pub fn set_user(token_response: Option<LoginResponse>, app: Rc<AppState>) -> Res
 pub async fn renew_access_token(app: Rc<AppState>) -> bool {
     match LoginResponse::call_api_get_access_renew(app.clone()).await {
         Ok(token_response) => {
-            if let Err(e) = set_user(Some(token_response.clone()), app.clone()) {
-                log::warn!("Token error: {}", e.message);
+            if let Err(_e) = set_user(Some(token_response.clone()), app.clone()) {
+                // log::error!("Token error: {}", e.message);
                 false
             } else {
                 true
             }
         }
-        Err(e) => {
-            log::warn!("Server return: {}", e.message);
+        Err(_e) => {
+            // log::warn!("Server return: {}", e.message);
             false
         }
     }
@@ -209,15 +184,15 @@ pub async fn renew_access_token(app: Rc<AppState>) -> bool {
 pub async fn renew_refresh_token(password: &str, token_2fa: &str, app: Rc<AppState>) -> bool {
     match LoginResponse::call_api_put_refresh_renew(password, token_2fa, app.clone()).await {
         Ok(token_response) => {
-            if let Err(e) = set_user(Some(token_response.clone()), app.clone()) {
-                log::warn!("Token error: {}", e.message);
+            if let Err(_e) = set_user(Some(token_response.clone()), app.clone()) {
+                // log::error!("Token error: {}", e.message);
                 false
             } else {
                 true
             }
         }
-        Err(e) => {
-            log::warn!("Server return: {}", e.message);
+        Err(_e) => {
+            // log::warn!("Server return: {}", e.message);
             false
         }
     }

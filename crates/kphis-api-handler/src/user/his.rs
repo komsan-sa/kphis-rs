@@ -236,7 +236,6 @@ async fn login_response(socket_addr: SocketAddr, user: &UserDb, cookies: &Cookie
     let Ulid(state_id) = Ulid::new();
     let access_token = gen_token_public(
         state_id,
-        &user.name,
         (app.access_limit(), app.refresh_limit()),
         None, // generate new rexp
         TokenType::Access,
@@ -244,7 +243,6 @@ async fn login_response(socket_addr: SocketAddr, user: &UserDb, cookies: &Cookie
     )?;
     let refresh_token = gen_token_public(
         state_id,
-        &user.name,
         (app.refresh_limit(), app.refresh_limit()),
         None, // generate new rexp
         TokenType::Refresh,
@@ -356,7 +354,6 @@ fn refresh_response(state_id: u128, user: &UserDb, roles: Vec<CurrentUserRole>, 
     // generate new access token and new refersh token
     let access_token = gen_token_public(
         state_id,
-        &user.name,
         (app.access_limit(), app.refresh_limit()),
         None, // generate new rexp
         TokenType::Access,
@@ -364,7 +361,6 @@ fn refresh_response(state_id: u128, user: &UserDb, roles: Vec<CurrentUserRole>, 
     )?;
     let refresh_token = gen_token_public(
         state_id,
-        &user.name,
         (app.refresh_limit(), app.refresh_limit()),
         None, // generate new rexp
         TokenType::Refresh,
@@ -455,7 +451,6 @@ pub fn app_status_from_api_state(app: &ApiState) -> AppStatus {
         has_covid_lab: app.app_config.has_covid_lab,
         allow_insert_his: app.app_config.allow_insert_his,
         can_sign_pdf: app.app_config.can_sign_pdf,
-        reauthen_before_refresh_token_expire_minutes: app.app_config.reauthen_before_refresh_token_expire_minutes,
         handshake_2fa_timeout_second: app.app_config.handshake_2fa_timeout_second,
 
         hosxp_hn_length: app.app_config.hosxp_hn_length,

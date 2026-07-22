@@ -16,7 +16,7 @@ pub fn main_js() {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
     console_log::init_with_level(log::Level::Debug).unwrap();
-    log::info!("wasm logging enabled");
+    // log::info!("wasm logging enabled");
 
     // let typst_worker = Rc::new(typst_worker::spawn("/typst_worker_init.js").await);
     let app_state = AppState::new_from_local_storage(&routing::url().lock_ref());

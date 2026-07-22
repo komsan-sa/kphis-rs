@@ -190,7 +190,7 @@ impl<'a> WorkerCall<'a> {
                     let window = window().unwrap();
                     // save to clipboard
                     if let Err(e) = JsFuture::from(window.navigator().clipboard().write_text(&message)).await {
-                        log::debug!("{:?}", e.dyn_ref::<JsString>().map(|s| s.into()).unwrap_or(String::from("Cannot save to Clipboard")));
+                        log::error!("{:?}", e.dyn_ref::<JsString>().map(|s| s.into()).unwrap_or(String::from("Cannot save to Clipboard")));
                     }
 
                     // red alert box
