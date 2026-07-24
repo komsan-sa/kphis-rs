@@ -550,6 +550,7 @@ We build custom CSS from SCSS files
 - `Refresh token` in cookie (`HttpOnly`, `SameOrigin=Strict` and `Secure`)
 - Token store only state-id, full-name, token-type, issued-timestamp, expire-timestamp
 - User must has `hos.opduser` that `doctorcode IS NOT NULL AND (account_disable IS NULL OR account_disable <> 'Y')` to be able to login
+- Prevent password guessing by limiting the number of attempts to 99 times, then a `Locked` message will appear. Unlock by edit `kphis_extra.user_config.failed` to 0
 
 ### Ward Passcode
 - Using `ward passcode` to protect specific ward, user MUST know passcode to see patients in passcode-protected ward
